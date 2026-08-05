@@ -31,12 +31,20 @@ public final class JavaSerDesugarer {
     private static final Pattern FIND_METHOD_CALL_PATTERN =
             Pattern.compile("(?m)^([ \\t]*)find[ \\t]+method[ \\t]+(\\S*\\.\\S+)[ \\t]*$");
 
+    /**
+     * Legacy decorator order: from decorator on class Name → from decorator Name on class
+     */
+    private static final Pattern FROM_DECORATOR_ON_LEGACY =
+            Pattern.compile(
+                    "(?m)^([ \\t]*from[ \\t]+decorator[ \\t]+)on[ \\t]+(method|class|field|parameter)[ \\t]+(@?[A-Za-z_][\\w$]*)\\b");
+
     public String apply(String source) {
         if (source == null) {
             return null;
         }
         String step = desugarFindWithAnnotation(source);
         step = desugarFromAnnotationOnLegacy(step);
+        step = desugarFromDecoratorOnLegacy(step);
         return desugarFindMethodCallPattern(step);
     }
 
@@ -84,6 +92,20 @@ public final class JavaSerDesugarer {
             String indent = matcher.group(1);
             String pattern = matcher.group(2);
             String replacement = indent + "find call " + pattern;
+            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
+    private static String desugarFromDecoratorOnLegacy(String source) {
+        Matcher matcher = FROM_DECORATOR_ON_LEGACY.matcher(source);
+        StringBuffer out = new StringBuffer();
+        while (matcher.find()) {
+            String prefix = matcher.group(1);
+            String element = matcher.group(2);
+            String name = matcher.group(3);
+            String replacement = prefix + name + " on " + element;
             matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(out);

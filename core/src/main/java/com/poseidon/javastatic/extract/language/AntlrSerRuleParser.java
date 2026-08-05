@@ -249,34 +249,24 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
         }
 
         private FindSpec buildFind(SerParser.FindDeclContext ctx) {
-            // F1–F3 "with annotation" removed from Ser.g4 (step-C3). Annotation finds arrive as
-            // generic/bare find + when annotation, merged in applyFindWhens after desugar.
-            if (ctx.FIELD() != null && ctx.fieldName != null) {
-                return new FindSpec(
-                        JavaElementKind.FIELD,
-                        ctx.fieldName.getText(),
-                        null,
-                        null);
-            }
-            if (ctx.CLASS() != null && ctx.methodPattern() == null && ctx.genericFindKind == null) {
-                return new FindSpec(JavaElementKind.CLASS, null, null, null);
-            }
+            // Clean g4: only "find call Owner.pattern" or generic "find <kind> <name>?".
             if (ctx.methodPattern() != null) {
-                // Owner.name / Owner.[a,b] always mean call sites in the Java executor
-                // (see docs/METHOD-VS-CALL.md). Prefer surface "find call …".
                 return new FindSpec(JavaElementKind.CALL, null, null, methodSelector(ctx.methodPattern()));
             }
             if (ctx.genericFindKind != null) {
-                return new FindSpec(
-                        null,
-                        ctx.genericFindKind.getText(),
-                        ctx.genericFindName != null ? ctx.genericFindName.getText() : null,
-                        null,
-                        null);
-            }
-            // bare "find field" without name — treat as field kind
-            if (ctx.FIELD() != null) {
-                return new FindSpec(JavaElementKind.FIELD, null, null, null);
+                String kind = ctx.genericFindKind.getText();
+                String name = ctx.genericFindName != null ? ctx.genericFindName.getText() : null;
+                JavaElementKind javaKind = javaKind(kind);
+                if (javaKind == JavaElementKind.FIELD) {
+                    return new FindSpec(JavaElementKind.FIELD, name, null, null);
+                }
+                if (javaKind == JavaElementKind.CLASS) {
+                    return new FindSpec(JavaElementKind.CLASS, null, null, null);
+                }
+                if (javaKind == JavaElementKind.METHOD) {
+                    return new FindSpec(JavaElementKind.METHOD, name, null, null);
+                }
+                return new FindSpec(null, kind, name, null, null);
             }
             throw new IllegalArgumentException("unsupported find declaration");
         }
@@ -316,43 +306,6 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
                         Integer.parseInt(src.INT().getText()),
                         take);
             }
-            if (src.CALL() != null) {
-                return new SourceSpec(JavaElementKind.CALL, null, null, null, null, null, null, take);
-            }
-            if (src.METHOD() != null) {
-                return new SourceSpec(JavaElementKind.METHOD, null, null, null, null, null, null, take);
-            }
-            if (src.CLASS() != null) {
-                return new SourceSpec(JavaElementKind.CLASS, null, null, null, null, null, null, take);
-            }
-            if (src.FIELD() != null) {
-                return new SourceSpec(
-                        JavaElementKind.FIELD,
-                        null,
-                        src.sourceName != null ? src.sourceName.getText() : null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        take);
-            }
-            if (src.PARAMETER() != null) {
-                return new SourceSpec(
-                        JavaElementKind.PARAMETER,
-                        null,
-                        src.sourceName != null ? src.sourceName.getText() : null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        take);
-            }
-            if (src.RETURN() != null) {
-                return new SourceSpec(JavaElementKind.RETURN, null, null, null, null, null, null, take);
-            }
-            if (src.ASSIGNMENT() != null) {
-                return new SourceSpec(JavaElementKind.ASSIGNMENT, null, null, null, null, null, null, take);
-            }
             if (src.NEW() != null) {
                 return new SourceSpec(
                         JavaElementKind.NEW,
@@ -375,17 +328,45 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
                         null,
                         take);
             }
+            // generic: from call / method / field name / children / jsx / …
+            String kindText = src.genericSourceKind.getText();
+            String name = src.genericSourceName != null ? src.genericSourceName.getText() : null;
+            JavaElementKind kind = sourceKind(kindText);
+            if (kind != null) {
+                return new SourceSpec(kind, null, name, null, null, null, null, take);
+            }
+            // Preserve unknown vocabulary kinds as elementKind strings for future extractors.
             return new SourceSpec(
                     null,
-                    src.genericSourceKind.getText(),
+                    kindText,
                     null,
                     null,
-                    src.genericSourceName != null ? src.genericSourceName.getText() : null,
+                    name,
                     null,
                     null,
                     null,
                     null,
                     take);
+        }
+
+        private static JavaElementKind sourceKind(String kind) {
+            if (kind == null) {
+                return null;
+            }
+            return switch (kind.toLowerCase(Locale.ROOT)) {
+                case "method" -> JavaElementKind.METHOD;
+                case "class" -> JavaElementKind.CLASS;
+                case "field" -> JavaElementKind.FIELD;
+                case "parameter" -> JavaElementKind.PARAMETER;
+                case "call" -> JavaElementKind.CALL;
+                case "return" -> JavaElementKind.RETURN;
+                case "assignment" -> JavaElementKind.ASSIGNMENT;
+                case "argument" -> JavaElementKind.ARGUMENT;
+                case "literal" -> JavaElementKind.LITERAL;
+                case "new" -> JavaElementKind.NEW;
+                case "annotation" -> JavaElementKind.ANNOTATION;
+                default -> null;
+            };
         }
 
         private BuildSpec buildBuild(SerParser.BuildDeclContext ctx) {
