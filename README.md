@@ -66,3 +66,9 @@ Java-side sugar inventory for grammar purification:
 
 - [docs/SUGAR-INVENTORY.md](docs/SUGAR-INVENTORY.md) (`step-A3`)
 - Plan lives in sibling spec: `../static-extract-spec/docs/SMALL-STEPS.md`
+
+## Conformance examples
+
+Language fixtures live in `examples/conformance/` (moved out of static-extract-spec).
+
+Agent skills live under `skills/`.

@@ -1,0 +1,16 @@
+rule "Spec Java Method Call"
+fact api_call
+
+find call HttpClient.get
+
+let callName =
+  from call take name
+
+let path =
+  from argument[0] take value
+
+build {
+  name: callName
+  path: path
+}
+

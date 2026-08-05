@@ -1,0 +1,1 @@
+{"rule":"Spec Java Annotation Fact","factType":"backend_endpoint","classifiers":{},"fields":{"path":"/api/users"},"projectFilePath":"input/Api.java","absoluteFilePath":"${EXAMPLE_DIR}/input/Api.java","startLine":8,"endLine":11,"enclosingSymbol":"demo.Api.users"}

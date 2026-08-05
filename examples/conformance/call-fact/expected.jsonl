@@ -1,0 +1,1 @@
+{"rule":"Spec Java Method Call","factType":"api_call","classifiers":{},"fields":{"name":"get","path":"/api/items"},"projectFilePath":"input/Client.java","absoluteFilePath":"${EXAMPLE_DIR}/input/Client.java","startLine":11,"endLine":11,"enclosingSymbol":"demo.Client.load"}

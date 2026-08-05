@@ -1,0 +1,1 @@
+{"rule":"Spec Java Config Field","factType":"config_key","classifiers":{},"fields":{"key":"service.url","field":"serviceUrl"},"projectFilePath":"input/AppConfig.java","absoluteFilePath":"${EXAMPLE_DIR}/input/AppConfig.java","startLine":8,"endLine":9,"enclosingSymbol":null}

@@ -23,7 +23,7 @@ class JavaExtractorSpecExampleTest {
 
     @Test
     void javaCliRunsSpecExamples() throws Exception {
-        Path examplesRoot = SpecAssertions.findSpecRoot().resolve("examples/java");
+        Path examplesRoot = SpecAssertions.findProjectRoot().resolve("examples/conformance");
         List<Path> examples;
         try (var stream = Files.list(examplesRoot)) {
             examples = stream

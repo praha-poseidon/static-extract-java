@@ -22,14 +22,12 @@ class SerAuthorSkillE2ETest {
     @Test
     void serAuthorHelperGeneratesAndRunsJavaAnnotationRule() throws Exception {
         Path javaRoot = SpecAssertions.findProjectRoot();
-        Path specRoot = SpecAssertions.findSpecRoot();
-        Path jsRoot = javaRoot.resolve("../static-extract-js").normalize();
-        Path sourceExample = specRoot.resolve("examples/java/annotation-fact");
+        Path sourceExample = javaRoot.resolve("examples/conformance/annotation-fact");
         Path example = tempDir.resolve("annotation-fact-project");
         copyDirectory(sourceExample, example);
-        Path request = jsRoot.resolve("test/fixtures/ser-author-java-annotation/request.txt");
+        Path request = javaRoot.resolve("skills/ser-author/fixtures/java-annotation-request.txt");
         Path outDir = tempDir.resolve("java-annotation");
-        Path skillScript = specRoot.resolve("skills/ser-author/scripts/run_static_extract.mjs");
+        Path skillScript = javaRoot.resolve("skills/ser-author/scripts/run_static_extract.mjs");
 
         ProcessResult result = runNode(javaRoot,
                 skillScript,
