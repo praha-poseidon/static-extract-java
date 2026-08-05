@@ -32,12 +32,12 @@ when annotation @*Mapping on method
 let basePath =
   from annotation @RequestMapping on class take attr(value)
   from annotation @RequestMapping on class take attr(path)
-  default ""
+  fallback ""
 
 let methodPath =
   from annotation @*Mapping on method take attr(value)
   from annotation @*Mapping on method take attr(path)
-  default ""
+  fallback ""
 
 let httpMethod =
   from annotation @*Mapping on method
