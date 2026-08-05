@@ -1,3 +1,8 @@
+# Java/JDT vocabulary (free atoms)
+
+Structure keywords live in shared Ser.g4; words below are free atoms for this extractor.
+See `static-extract-spec/docs/CLEAN-G4.md`.
+
 # Static Extract Java/JDT Extractor Vocabulary
 
 This file defines the main SER vocabulary currently implemented by the Java/JDT
