@@ -18,6 +18,9 @@ import java.util.List;
 public class JdtFindExecutor {
 
     public List<ASTNode> find(FindSpec find, TypeDeclaration typeDeclaration) {
+        if (!matchesEnclosingClass(find, typeDeclaration)) {
+            return List.of();
+        }
         if (find.annotation() != null) {
             return findByAnnotation(find, typeDeclaration);
         }
@@ -34,6 +37,49 @@ public class JdtFindExecutor {
             return findByMethodInvocation(find, typeDeclaration);
         }
         return List.of();
+    }
+
+    /**
+     * Narrow find to a specific type: class name and/or annotation on the class
+     * (e.g. only {@code UserController}, or only {@code @RestController}).
+     */
+    private boolean matchesEnclosingClass(FindSpec find, TypeDeclaration typeDeclaration) {
+        if (find == null || typeDeclaration == null) {
+            return true;
+        }
+        if (find.className() != null && !find.className().isBlank()) {
+            String simple = typeDeclaration.getName().getIdentifier();
+            String expected = find.className().trim();
+            if (!simple.equals(expected) && !simple.matches(globToRegex(expected))) {
+                // also allow FQN suffix: com.example.UserController
+                String fqn = typeDeclaration.resolveBinding() != null
+                        ? typeDeclaration.resolveBinding().getQualifiedName()
+                        : simple;
+                if (!fqn.equals(expected) && !fqn.endsWith("." + expected)) {
+                    return false;
+                }
+            }
+        }
+        if (find.classAnnotation() != null) {
+            return JdtAnnotationSupport.hasAnnotation(typeDeclaration.modifiers(), find.classAnnotation());
+        }
+        return true;
+    }
+
+    private static String globToRegex(String glob) {
+        StringBuilder sb = new StringBuilder("^");
+        for (int i = 0; i < glob.length(); i++) {
+            char c = glob.charAt(i);
+            if (c == '*') {
+                sb.append(".*");
+            } else if ("\\.[]{}()+-^$|".indexOf(c) >= 0) {
+                sb.append('\\').append(c);
+            } else {
+                sb.append(c);
+            }
+        }
+        sb.append('$');
+        return sb.toString();
     }
 
     private List<ASTNode> findByAnnotation(FindSpec find, TypeDeclaration typeDeclaration) {

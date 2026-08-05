@@ -26,43 +26,49 @@ find field
 when annotation @AnnotationName on field
 ```
 
-## Filtering: when / where
+## Filtering: `where` vs `when` (different roles)
 
-`when` and `where` are the same (scope filter). They do **not** identify which
-rule describes a function — that is only `find`.
+| keyword | meaning | examples |
+|---------|---------|----------|
+| **find** | what shape | `method`, `call`, `field` |
+| **where** | **where it lives** (scope) | enclosing class name, annotation **on class**, package |
+| **when** | **what the element is** (anchor) | annotation **on method/field**, call owner |
+
+Order: `find` → `where*` → `when*` → `let` → `build`.
 
 ```ser
 find method
-where annotation @PostMapping on method
-
-find call get
-when call owner router
+where class name UserController              # scope: only this type
+where annotation @RestController on class  # scope: only controller types
+when annotation @PostMapping on method     # anchor: method has PostMapping
 ```
 
-### Inbound vs outbound (important)
-
-`@PostMapping` alone does **not** mean inbound or outbound. Use different **find** shapes:
-
-| Direction | Typical find | Example |
-|-----------|--------------|---------|
-| **Inbound** (API entry) | method + mapping annotation | `find method` + `where annotation @*Mapping on method` |
-| **Outbound** (client call) | method invocation | `find call RestTemplate.postForObject` |
-
-Do not try to put both on the same find with a vague when. Two rules:
+### Same URL / annotation on A and B — only B
 
 ```ser
-# inbound — controller handler
-rule "Spring MVC inbound"
-endpoint HTTP inbound
-find method
-where annotation @PostMapping on method
-...
+find field url
+where class name ConfigB
 
-# outbound — HTTP client
-rule "RestTemplate outbound"
-endpoint HTTP outbound
+find method
+where class name UserController
+when annotation @GetMapping on method
+```
+
+### Controller vs Client
+
+```ser
+# inbound-ish: mapping on controller type
+find method
+where annotation @RestController on class
+when annotation @PostMapping on method
+
+# client-ish: mapping on Feign type
+find method
+where annotation @FeignClient on class
+when annotation @PostMapping on method
+
+# or outbound by call shape
 find call RestTemplate.[postForObject,postForEntity]
-...
 ```
 
 ## Source Expressions

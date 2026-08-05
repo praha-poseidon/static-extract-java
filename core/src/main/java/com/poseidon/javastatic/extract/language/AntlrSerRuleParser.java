@@ -66,6 +66,8 @@ public class AntlrSerRuleParser implements SerRuleParser {
             String name = unquote(ctx.ruleDecl().STRING().getText());
             RuleTarget target = ruleTarget(ctx.ruleTargetDecl());
             FindSpec find = interpretFind(atoms(ctx.findDecl().freeAtom()));
+            // where = scope (enclosing class / class annotation); when = anchor predicates
+            find = applyWhereAtoms(find, ctx.whereDecl());
             find = applyWhenAtoms(find, ctx.whenDecl());
             List<LetSpec> lets = ctx.letDecl().stream().map(this::buildLet).toList();
             BuildSpec build = buildBuild(ctx.buildDecl());
@@ -151,6 +153,47 @@ public class AntlrSerRuleParser implements SerRuleParser {
             return new FindSpec(null, kind, selector, null, null);
         }
 
+        /** where = scope: enclosing class name / annotation on class. */
+        private FindSpec applyWhereAtoms(FindSpec find, List<SerParser.WhereDeclContext> wheres) {
+            if (find == null || wheres == null || wheres.isEmpty()) {
+                return find;
+            }
+            AnnotationSelector classAnnotation = find.classAnnotation();
+            String className = find.className();
+            for (SerParser.WhereDeclContext w : wheres) {
+                if (w.IF() != null) {
+                    continue;
+                }
+                List<String> a = atoms(w.freeAtom());
+                if (a.isEmpty()) {
+                    continue;
+                }
+                if ("class".equals(a.get(0)) && a.size() >= 2) {
+                    if ("name".equals(a.get(1)) && a.size() >= 3) {
+                        className = stripQuotes(a.get(2));
+                    } else {
+                        className = stripQuotes(a.get(1));
+                    }
+                    continue;
+                }
+                if (a.size() >= 4 && "annotation".equals(a.get(0)) && "on".equals(a.get(2))) {
+                    JavaElementKind on = javaKind(a.get(3));
+                    if (on == JavaElementKind.CLASS) {
+                        classAnnotation = annotationFromText(on, a.get(1));
+                    }
+                }
+            }
+            return new FindSpec(
+                    find.target(),
+                    find.targetKind(),
+                    find.name(),
+                    find.annotation(),
+                    find.method(),
+                    className,
+                    classAnnotation);
+        }
+
+        /** when = predicates on the find target (method/field annotation, etc.). */
         private FindSpec applyWhenAtoms(FindSpec find, List<SerParser.WhenDeclContext> whens) {
             if (find == null || whens == null || whens.isEmpty()) {
                 return find;
@@ -162,11 +205,20 @@ public class AntlrSerRuleParser implements SerRuleParser {
                     continue;
                 }
                 List<String> a = atoms(w.freeAtom());
-                // annotation @X on method
+                if (a.isEmpty()) {
+                    continue;
+                }
+                // annotation @X on method|field (not class — class is where)
                 if (a.size() >= 4 && "annotation".equals(a.get(0)) && "on".equals(a.get(2))) {
-                    onElement = javaKind(a.get(3));
-                    annotation = annotationFromText(onElement, a.get(1));
-                } else if (a.size() >= 2 && "annotation".equals(a.get(0)) && a.get(1).startsWith("@")) {
+                    JavaElementKind on = javaKind(a.get(3));
+                    if (on == JavaElementKind.CLASS) {
+                        continue;
+                    }
+                    onElement = on;
+                    annotation = annotationFromText(on, a.get(1));
+                    continue;
+                }
+                if (a.size() >= 2 && "annotation".equals(a.get(0)) && a.get(1).startsWith("@")) {
                     onElement = find.target() != null ? find.target() : JavaElementKind.METHOD;
                     annotation = annotationFromText(onElement, a.get(1));
                 }
@@ -178,7 +230,14 @@ public class AntlrSerRuleParser implements SerRuleParser {
             if (target == null) {
                 target = javaKind(find.targetKind());
             }
-            return new FindSpec(target, find.name(), annotation, find.method());
+            return new FindSpec(
+                    target != null ? target : find.target(),
+                    find.targetKind(),
+                    find.name(),
+                    annotation,
+                    find.method(),
+                    find.className(),
+                    find.classAnnotation());
         }
 
         private FindSpec resolveGenericTarget(FindSpec find) {
@@ -189,7 +248,24 @@ public class AntlrSerRuleParser implements SerRuleParser {
             if (kind == null) {
                 return find;
             }
-            return new FindSpec(kind, find.name(), find.annotation(), find.method());
+            return new FindSpec(
+                    kind,
+                    find.targetKind(),
+                    find.name(),
+                    find.annotation(),
+                    find.method(),
+                    find.className(),
+                    find.classAnnotation());
+        }
+
+        private static String stripQuotes(String text) {
+            if (text == null) {
+                return null;
+            }
+            if (text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
+                return text.substring(1, text.length() - 1);
+            }
+            return text;
         }
 
         private TraceTargetKind traceTarget(List<String> atoms) {
