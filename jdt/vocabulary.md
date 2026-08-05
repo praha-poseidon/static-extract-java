@@ -20,9 +20,9 @@ find field with annotation @AnnotationName
 ## Source Expressions
 
 ```ser
-from annotation on class @AnnotationName take attr(value)
-from annotation on method @AnnotationName take attr(value)
-from annotation on field @AnnotationName take attr(value)
+from annotation @AnnotationName on class take attr(value)
+from annotation @AnnotationName on method take attr(value)
+from annotation @AnnotationName on field take attr(value)
 from class take name
 from method take name
 from method take signature

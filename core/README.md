@@ -29,17 +29,17 @@ fact backend_endpoint
 find method with annotation @*Mapping
 
 let basePath =
-  from annotation on class @RequestMapping take attr(value)
-  from annotation on class @RequestMapping take attr(path)
+  from annotation @RequestMapping on class take attr(value)
+  from annotation @RequestMapping on class take attr(path)
   default ""
 
 let methodPath =
-  from annotation on method @*Mapping take attr(value)
-  from annotation on method @*Mapping take attr(path)
+  from annotation @*Mapping on method take attr(value)
+  from annotation @*Mapping on method take attr(path)
   default ""
 
 let httpMethod =
-  from annotation on method @*Mapping
+  from annotation @*Mapping on method
   take name
   map {
     GetMapping: GET
