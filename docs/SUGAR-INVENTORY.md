@@ -15,7 +15,7 @@ IDs: **F** find · **S** from · **W** when (same as CORE-VS-JAVA-DIALECT).
 
 | File | Sugar lines | IDs |
 |---|---|---|
-| `jdt/src/main/resources/static-extract/rules/builtin/spring-mvc-http-inbound.ser` | `find method with annotation @*Mapping`; multiple `from annotation on class/method` | F1, S1, S2 |
+| `jdt/src/main/resources/static-extract/rules/builtin/spring-mvc-http-inbound.ser` | canonical `find method` + `when annotation @*Mapping on method`; still `from annotation on …` (S1/S2) | S1, S2 (F1 rewritten in D2) |
 | `jdt/src/main/resources/static-extract/rules/builtin/rest-template-http-outbound.ser` | `find method RestTemplate.[...]` | F4, F5 |
 | `jdt/src/main/resources/static-extract/traces/builtin/spring-config.trace.ser` | `when annotation @Value on field`; `from annotation on field @Value`; `when method Environment.getProperty` | W1, S3, W2 |
 
@@ -30,9 +30,9 @@ Path root: `../static-extract-spec/examples/java/`
 
 | File | Sugar | IDs |
 |---|---|---|
-| `annotation-fact/rule.ser` | `find method with annotation @RouteGet`; `from annotation on method @RouteGet` | F1, S1 |
+| `annotation-fact/rule.ser` | canonical find+when; still `from annotation on method` | S1 (F1 rewritten in D1) |
 | `call-fact/rule.ser` | `find method HttpClient.get` | F4 |
-| `config-field/rule.ser` | `find field with annotation @ConfigProperty`; `from annotation on field @ConfigProperty` | F3, S3 |
+| `config-field/rule.ser` | canonical find+when; still `from annotation on field` | S3 (F3 rewritten in D1) |
 
 ---
 
