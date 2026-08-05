@@ -283,7 +283,11 @@ public class AntlrSerRuleParser implements SerRuleParser {
             String defaultValue =
                     ctx.defaultLine() != null ? defaultLiteral(List.of(ctx.defaultLine().freeAtom().getText())) : null;
             Map<String, String> mapping = ctx.mapBlock() != null ? mapBlock(ctx.mapBlock()) : Map.of();
-            return new LetSpec(name, sources, defaultValue, mapping);
+            List<BuildAction> pipeline =
+                    ctx.pipelineStep() == null
+                            ? List.of()
+                            : ctx.pipelineStep().stream().map(this::buildAction).toList();
+            return new LetSpec(name, sources, defaultValue, mapping, pipeline);
         }
 
         private SourceSpec buildSource(SerParser.SourceLineContext ctx) {

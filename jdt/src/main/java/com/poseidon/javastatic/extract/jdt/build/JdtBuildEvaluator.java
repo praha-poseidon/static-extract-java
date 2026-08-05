@@ -75,7 +75,8 @@ public class JdtBuildEvaluator {
         return result;
     }
 
-    private String applyActions(String input, List<BuildAction> actions) {
+    /** Apply build pipeline actions to a single string (also used by let pipelines). */
+    public String applyActions(String input, List<BuildAction> actions) {
         String value = input != null ? input : "";
         if (actions == null) {
             return value;
