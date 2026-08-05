@@ -30,7 +30,6 @@ class JavaStaticExtractProjectRunnerTest {
         List<StaticExtractResult> results =
                 JavaStaticExtractProjectRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .source(sourceFile)
                         .addRule(rule())
                         .build()
@@ -49,7 +48,6 @@ class JavaStaticExtractProjectRunnerTest {
         JavaStaticExtractProjectRunner runner =
                 JavaStaticExtractProjectRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .project(tempDir)
                         .addRule(rule())
                         .build();
@@ -70,7 +68,6 @@ class JavaStaticExtractProjectRunnerTest {
         JavaStaticExtractProjectRunner runner =
                 JavaStaticExtractProjectRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .project(tempDir)
                         .addRule(rule())
                         .build();
@@ -97,7 +94,6 @@ class JavaStaticExtractProjectRunnerTest {
         JavaStaticExtractProjectRunner runner =
                 JavaStaticExtractProjectRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .project(tempDir)
                         .source(Path.of("src/main/java"))
                         .classes(Path.of("target/classes"))
@@ -105,7 +101,6 @@ class JavaStaticExtractProjectRunnerTest {
                         .dependency(null)
                         .charset(null)
                         .addRules(List.of(rule()))
-                        .addTraceRuleSets(null)
                         .externalValues(Map.of())
                         .build();
 
@@ -123,7 +118,6 @@ class JavaStaticExtractProjectRunnerTest {
                 IllegalStateException.class,
                 () -> JavaStaticExtractProjectRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .build());
     }
 

@@ -56,8 +56,6 @@ public final class JavaStaticExtractAssistant {
                 List.of(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.traceRuleFiles(),
-                request.traceRuleDirectories(),
                 request.builtinRules(),
                 request.externalValues());
         List<Path> files = resolveInputPaths(request.project(), request.files());
@@ -78,8 +76,6 @@ public final class JavaStaticExtractAssistant {
                 request.files(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.traceRuleFiles(),
-                request.traceRuleDirectories(),
                 request.builtinRules(),
                 request.externalValues()));
         List<SourceFacts> facts = safeList(request.files()).stream()
@@ -101,8 +97,6 @@ public final class JavaStaticExtractAssistant {
                 request.dependencies(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.traceRuleFiles(),
-                request.traceRuleDirectories(),
                 request.builtinRules(),
                 request.externalValues());
         List<ExtractedFact> results = builder.build().extractFacts();
@@ -125,26 +119,18 @@ public final class JavaStaticExtractAssistant {
             List<Path> dependencies,
             List<Path> ruleFiles,
             List<Path> ruleDirectories,
-            List<Path> traceRuleFiles,
-            List<Path> traceRuleDirectories,
             boolean builtinRules,
             Map<String, Map<String, List<String>>> externalValues) {
+        // Value-trace patches live in each rule file as optional trace { } blocks.
         JavaStaticExtractProjectRunner.Builder builder = JavaStaticExtractProjectRunner.builder()
                 .project(project)
                 .classpathRules(builtinRules)
-                .classpathTraceRules(builtinRules)
                 .addRules(loader.loadRulesFromFiles(safeList(ruleFiles)))
-                .addTraceRuleSets(loader.loadTraceRulesFromFiles(safeList(ruleFiles)))
-                .addTraceRuleSets(loader.loadTraceRulesFromFiles(safeList(traceRuleFiles)))
                 .externalValues(externalValues == null ? Map.of() : externalValues);
         safeList(sources).forEach(builder::source);
         safeList(classes).forEach(builder::classes);
         safeList(dependencies).forEach(builder::dependency);
-        safeList(ruleDirectories).forEach(directory -> {
-            builder.rulesFromDirectory(directory);
-            builder.traceRulesFromDirectory(directory);
-        });
-        safeList(traceRuleDirectories).forEach(builder::traceRulesFromDirectory);
+        safeList(ruleDirectories).forEach(builder::rulesFromDirectory);
         return builder;
     }
 

@@ -5,7 +5,6 @@ import com.poseidon.javastatic.extract.jdt.load.SerRuleLoader;
 import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceResolver;
 import com.poseidon.javastatic.extract.language.AntlrSerRuleParser;
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
-import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -23,40 +22,37 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class JavaStaticExtractRunnerTest {
 
     @Test
-    void extractsWithProgrammaticRulesAndTraceConfiguration() {
-        AntlrSerRuleParser parser = new AntlrSerRuleParser();
+    void extractsWithProgrammaticRulesAndEmbeddedTrace() {
         StaticExtractRule rule =
-                parser.parse(
-                        """
-                        rule "Trace Field Value"
-                        endpoint CUSTOM inbound
-                        find method
-when annotation @Endpoint on method
+                new AntlrSerRuleParser()
+                        .parse(
+                                """
+                                rule "Trace Field Value"
+                                endpoint CUSTOM inbound
+                                find method
+                                when annotation @Endpoint on method
 
-                        let basePath =
-                          from field basePath take value
+                                let basePath =
+                                  from field basePath take value
 
-                        build {
-                          path: basePath
-                        }
-                        """);
-        StaticTraceRuleSet traceRuleSet =
-                parser.parseTrace(
-                        """
-                        trace "Spring Config Trace"
+                                build {
+                                  path: basePath
+                                }
 
-                        from field
-when annotation @Value on field
+                                trace {
+                                  from field
+                                  when annotation @Value on field
 
-let rawValue =
-  from annotation @Value on field take attr(value)
+                                  let rawValue =
+                                    from annotation @Value on field take attr(value)
 
-build {
-  namespace: "config"
-  lookup: rawValue | normalize placeholderLookup
-  default: rawValue | normalize placeholderDefault
-}
-                        """);
+                                  build {
+                                    namespace: "config"
+                                    lookup: rawValue | normalize placeholderLookup
+                                    default: rawValue | normalize placeholderDefault
+                                  }
+                                }
+                                """);
         CompilationUnit cu =
                 parse(
                         """
@@ -80,9 +76,7 @@ build {
         JavaStaticExtractRunner runner =
                 JavaStaticExtractRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .addRule(rule)
-                        .addTraceRuleSet(traceRuleSet)
                         .externalValues(Map.of(
                                 "config", Map.of("service.base-url", List.of("http://users"))))
                         .build();
@@ -111,7 +105,7 @@ build {
                                 rule "Custom Trace Resolver"
                                 endpoint CUSTOM inbound
                                 find method
-when annotation @Endpoint on method
+                                when annotation @Endpoint on method
 
                                 let basePath =
                                   from field basePath take value
@@ -152,7 +146,6 @@ when annotation @Endpoint on method
         JavaStaticExtractRunner runner =
                 JavaStaticExtractRunner.builder()
                         .classpathRules(false)
-                        .classpathTraceRules(false)
                         .addRule(rule)
                         .addTraceResolver(resolver)
                         .build();
@@ -177,11 +170,6 @@ when annotation @Endpoint on method
                           kind: "loaded"
                         }
                         """);
-        StaticTraceRuleSet traceRuleSet =
-                parser.parseTrace(
-                        """
-                        trace "Empty Trace"
-                        """);
         SerRuleLoader loader =
                 new SerRuleLoader(null, parser) {
                     @Override
@@ -190,28 +178,13 @@ when annotation @Endpoint on method
                     }
 
                     @Override
-                    public List<StaticTraceRuleSet> loadApplicationTraceRules() {
-                        return List.of(traceRuleSet);
-                    }
-
-                    @Override
                     public List<StaticExtractRule> loadRulesFromDirectory(java.nio.file.Path directory) {
                         return List.of(rule);
                     }
 
                     @Override
-                    public List<StaticTraceRuleSet> loadTraceRulesFromDirectory(java.nio.file.Path directory) {
-                        return List.of(traceRuleSet);
-                    }
-
-                    @Override
                     public List<StaticExtractRule> loadRulesFromFiles(List<java.nio.file.Path> files) {
                         return List.of(rule);
-                    }
-
-                    @Override
-                    public List<StaticTraceRuleSet> loadTraceRulesFromFiles(List<java.nio.file.Path> files) {
-                        return List.of(traceRuleSet);
                     }
                 };
 
@@ -219,15 +192,11 @@ when annotation @Endpoint on method
                 JavaStaticExtractRunner.builder(loader)
                         .addRule(null)
                         .addRules(null)
-                        .addTraceRuleSet(null)
-                        .addTraceRuleSets(null)
                         .addTraceResolver(null)
                         .addTraceResolvers(null)
                         .externalValueResolver(null)
                         .rulesFromDirectory(java.nio.file.Path.of("rules"))
-                        .traceRulesFromDirectory(java.nio.file.Path.of("traces"))
                         .rulesFromFiles(List.of(java.nio.file.Path.of("a.ser")))
-                        .traceRulesFromFiles(List.of(java.nio.file.Path.of("t.ser")))
                         .build();
 
         assertEquals(3, runner.rules().size());

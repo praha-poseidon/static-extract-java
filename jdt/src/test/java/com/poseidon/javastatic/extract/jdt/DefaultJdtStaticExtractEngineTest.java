@@ -242,25 +242,24 @@ when annotation @Endpoint on method
                                 build {
                                   path: basePath
                                 }
-                                """);
-        StaticTraceRuleSet traceRules =
-                new AntlrSerRuleParser()
-                        .parseTrace(
-                                """
-                                trace "Spring External Values"
+                                
 
-                                from field
-when annotation @Value on field
+trace {
+                                  from field
+  when annotation @Value on field
 
-let rawValue =
-  from annotation @Value on field take attr(value)
+  let rawValue =
+    from annotation @Value on field take attr(value)
 
-build {
-  namespace: "config"
-  lookup: rawValue | normalize placeholderLookup
-  default: rawValue | normalize placeholderDefault
+  build {
+    namespace: "config"
+    lookup: rawValue | normalize placeholderLookup
+    default: rawValue | normalize placeholderDefault
+  }
+
 }
-                                """);
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -284,7 +283,7 @@ build {
         TypeDeclaration type = typeNamed(cu, "Client");
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config", Map.of("service.base-url", List.of("http://users")))));
 
@@ -312,24 +311,23 @@ when annotation @Endpoint on method
                                 build {
                                   path: basePath
                                 }
-                                """);
-        StaticTraceRuleSet traceRules =
-                new AntlrSerRuleParser()
-                        .parseTrace(
-                                """
-                                trace "Spring External Values"
+                                
 
-                                from call
-when method Environment.getProperty
+trace {
+                                  from call
+  when method Environment.getProperty
 
-let configLookup =
-  from argument[0] take value
+  let configLookup =
+    from argument[0] take value
 
-build {
-  namespace: "config"
-  lookup: configLookup
+  build {
+    namespace: "config"
+    lookup: configLookup
+  }
+
 }
-                                """);
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -352,7 +350,7 @@ build {
         TypeDeclaration type = typeNamed(cu, "Client");
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config", Map.of("service.path", List.of("/api/users")))));
 
@@ -380,25 +378,24 @@ when annotation @Endpoint on method
                                 build {
                                   path: basePath
                                 }
-                                """);
-        StaticTraceRuleSet traceRules =
-                new AntlrSerRuleParser()
-                        .parseTrace(
-                                """
-                                trace "Parameter External Values"
+                                
 
-                                from parameter
-                                when annotation @Value on parameter
+trace {
+                                  from parameter
+                                  when annotation @Value on parameter
 
-                                let rawValue =
-                                  from annotation @Value on parameter take attr(value)
+                                  let rawValue =
+                                    from annotation @Value on parameter take attr(value)
 
-                                build {
-                                  namespace: "config"
-                                  lookup: rawValue | normalize placeholderLookup
-                                  default: rawValue | normalize placeholderDefault
-                                }
-                                """);
+                                  build {
+                                    namespace: "config"
+                                    lookup: rawValue | normalize placeholderLookup
+                                    default: rawValue | normalize placeholderDefault
+                                  }
+
+}
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -419,7 +416,7 @@ when annotation @Endpoint on method
         TypeDeclaration type = typeNamed(cu, "Client");
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config", Map.of("service.path", List.of("/api/users")))));
 
@@ -447,24 +444,23 @@ when annotation @Endpoint on method
                                 build {
                                   path: basePath
                                 }
-                                """);
-        StaticTraceRuleSet traceRules =
-                new AntlrSerRuleParser()
-                        .parseTrace(
-                                """
-                                trace "Call External Values"
+                                
 
-                                from call
-                                when method Environment.getProperty
+trace {
+                                  from call
+                                  when method Environment.getProperty
 
-                                let configLookup =
-                                  from argument[0] take value
+                                  let configLookup =
+                                    from argument[0] take value
 
-                                build {
-                                  namespace: "config"
-                                  lookup: configLookup
-                                }
-                                """);
+                                  build {
+                                    namespace: "config"
+                                    lookup: configLookup
+                                  }
+
+}
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -491,7 +487,7 @@ when annotation @Endpoint on method
         TypeDeclaration type = typeNamed(cu, "Client");
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config", Map.of("service.path", List.of("/api/users")))));
 

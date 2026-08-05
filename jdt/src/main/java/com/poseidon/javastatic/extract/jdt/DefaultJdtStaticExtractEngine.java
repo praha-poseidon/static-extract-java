@@ -20,19 +20,19 @@ import java.util.Map;
 public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
 
     private final JdtFindExecutor findExecutor;
-    private final JdtLetEvaluator letEvaluator;
     private final JdtBuildEvaluator buildEvaluator;
+    private final JdtTraceOptions baseTraceOptions;
+    private final JdtLetEvaluator sharedLetEvaluator;
 
     public DefaultJdtStaticExtractEngine() {
         this(JdtTraceOptions.empty());
     }
 
     public DefaultJdtStaticExtractEngine(JdtTraceOptions traceOptions) {
-        JdtValueTracer valueTracer = new JdtValueTracer(traceOptions);
-        JdtSourceEvaluator sourceEvaluator = new JdtSourceEvaluator(valueTracer);
+        this.baseTraceOptions = traceOptions != null ? traceOptions : JdtTraceOptions.empty();
         this.findExecutor = new JdtFindExecutor();
-        this.letEvaluator = new JdtLetEvaluator(sourceEvaluator);
         this.buildEvaluator = new JdtBuildEvaluator();
+        this.sharedLetEvaluator = null;
     }
 
     public DefaultJdtStaticExtractEngine(
@@ -40,8 +40,9 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
             JdtLetEvaluator letEvaluator,
             JdtBuildEvaluator buildEvaluator) {
         this.findExecutor = findExecutor;
-        this.letEvaluator = letEvaluator;
+        this.sharedLetEvaluator = letEvaluator;
         this.buildEvaluator = buildEvaluator;
+        this.baseTraceOptions = JdtTraceOptions.empty();
     }
 
     @Override
@@ -55,6 +56,7 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
             return List.of();
         }
 
+        JdtLetEvaluator letEvaluator = letEvaluatorFor(rule);
         List<StaticExtractResult> results = new ArrayList<>();
         for (ASTNode anchor : findExecutor.find(rule.find(), typeDeclaration)) {
             JdtEvalContext context = new JdtEvalContext(compilationUnit, typeDeclaration, anchor);
@@ -73,5 +75,14 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
             }
         }
         return results;
+    }
+
+    private JdtLetEvaluator letEvaluatorFor(StaticExtractRule rule) {
+        if (sharedLetEvaluator != null) {
+            return sharedLetEvaluator;
+        }
+        JdtTraceOptions options = baseTraceOptions.withEmbedded(rule.embeddedTrace());
+        JdtValueTracer valueTracer = new JdtValueTracer(options);
+        return new JdtLetEvaluator(new JdtSourceEvaluator(valueTracer));
     }
 }

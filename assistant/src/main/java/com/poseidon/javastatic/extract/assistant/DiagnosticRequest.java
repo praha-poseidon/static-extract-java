@@ -9,7 +9,5 @@ public record DiagnosticRequest(
         List<Path> files,
         List<Path> ruleFiles,
         List<Path> ruleDirectories,
-        List<Path> traceRuleFiles,
-        List<Path> traceRuleDirectories,
         boolean builtinRules,
         Map<String, Map<String, List<String>>> externalValues) {}

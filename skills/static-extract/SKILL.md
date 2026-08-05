@@ -68,7 +68,7 @@ reuse SER rules, run them, and iterate.
    static-extract-ts run --project /path/to/project --source /path/to/project/src --rule /path/to/project/.ser/generated/name.ser --out /path/to/project/.ser/result/extract.jsonl
    ```
 
-One `.ser` file may contain both `rule ...` and `trace ...` blocks for Java/JDT workflows. For TS CLI execution, pass trace-ser files through `--trace-rule` or `--trace-rules`.
+One `.ser` file may include an optional `trace { … }` block after `build` for value-trace patches. There are no separate trace files or `--trace-rule` flags.
 
 ## Rule Writing
 

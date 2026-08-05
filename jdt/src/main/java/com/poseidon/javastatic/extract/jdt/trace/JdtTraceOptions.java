@@ -37,6 +37,16 @@ public record JdtTraceOptions(
                 traceResolvers);
     }
 
+    /** Merge entries from a rule-file embedded {@code trace { }} block. */
+    public JdtTraceOptions withEmbedded(StaticTraceRuleSet embedded) {
+        if (embedded == null || embedded.externalEntries() == null || embedded.externalEntries().isEmpty()) {
+            return this;
+        }
+        List<ExternalValueEntryRule> merged = new ArrayList<>(externalEntries);
+        merged.addAll(embedded.externalEntries());
+        return new JdtTraceOptions(merged, externalValueResolver, traceResolvers);
+    }
+
     public JdtTraceOptions {
         externalEntries = externalEntries != null ? List.copyOf(externalEntries) : List.of();
         externalValueResolver = externalValueResolver != null ? externalValueResolver : (namespace, key) -> List.of();

@@ -8,7 +8,6 @@ import com.poseidon.javastatic.extract.jdt.trace.external.ExternalValueResolver;
 import com.poseidon.javastatic.extract.jdt.trace.external.MapExternalValueResolver;
 import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceResolver;
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
-import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
@@ -73,11 +72,9 @@ public class JavaStaticExtractRunner {
     public static final class Builder {
         private final SerRuleLoader loader;
         private final List<StaticExtractRule> rules = new ArrayList<>();
-        private final List<StaticTraceRuleSet> traceRuleSets = new ArrayList<>();
         private final List<JdtTraceResolver> traceResolvers = new ArrayList<>();
         private ExternalValueResolver externalValueResolver = new MapExternalValueResolver(Map.of());
         private boolean loadClasspathRules = true;
-        private boolean loadClasspathTraceRules = true;
 
         private Builder() {
             this(new SerRuleLoader());
@@ -92,11 +89,6 @@ public class JavaStaticExtractRunner {
             return this;
         }
 
-        public Builder classpathTraceRules(boolean enabled) {
-            this.loadClasspathTraceRules = enabled;
-            return this;
-        }
-
         public Builder addRule(StaticExtractRule rule) {
             if (rule != null) {
                 rules.add(rule);
@@ -107,20 +99,6 @@ public class JavaStaticExtractRunner {
         public Builder addRules(List<StaticExtractRule> rules) {
             if (rules != null) {
                 rules.forEach(this::addRule);
-            }
-            return this;
-        }
-
-        public Builder addTraceRuleSet(StaticTraceRuleSet traceRuleSet) {
-            if (traceRuleSet != null) {
-                traceRuleSets.add(traceRuleSet);
-            }
-            return this;
-        }
-
-        public Builder addTraceRuleSets(List<StaticTraceRuleSet> traceRuleSets) {
-            if (traceRuleSets != null) {
-                traceRuleSets.forEach(this::addTraceRuleSet);
             }
             return this;
         }
@@ -143,16 +121,8 @@ public class JavaStaticExtractRunner {
             return addRules(loader.loadRulesFromDirectory(directory));
         }
 
-        public Builder traceRulesFromDirectory(Path directory) {
-            return addTraceRuleSets(loader.loadTraceRulesFromDirectory(directory));
-        }
-
         public Builder rulesFromFiles(List<Path> files) {
             return addRules(loader.loadRulesFromFiles(files));
-        }
-
-        public Builder traceRulesFromFiles(List<Path> files) {
-            return addTraceRuleSets(loader.loadTraceRulesFromFiles(files));
         }
 
         public Builder externalValueResolver(ExternalValueResolver resolver) {
@@ -171,14 +141,10 @@ public class JavaStaticExtractRunner {
             }
             effectiveRules.addAll(rules);
 
-            List<StaticTraceRuleSet> effectiveTraceRuleSets = new ArrayList<>();
-            if (loadClasspathTraceRules) {
-                effectiveTraceRuleSets.addAll(loader.loadApplicationTraceRules());
-            }
-            effectiveTraceRuleSets.addAll(traceRuleSets);
-
+            // Value-trace patches live in each rule file (trace { }). Base options
+            // only carry external dictionary + SPI resolvers.
             JdtTraceOptions traceOptions =
-                    JdtTraceOptions.of(effectiveTraceRuleSets, externalValueResolver, traceResolvers);
+                    JdtTraceOptions.of(List.of(), externalValueResolver, traceResolvers);
             return new JavaStaticExtractRunner(effectiveRules, traceOptions);
         }
     }

@@ -78,8 +78,6 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     files,
                     ruleFiles,
                     ruleDirectories,
-                    traceRuleFiles,
-                    traceRuleDirectories,
                     builtin,
                     externalValues()));
         }
@@ -97,8 +95,6 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     files,
                     ruleFiles,
                     ruleDirectories,
-                    traceRuleFiles,
-                    traceRuleDirectories,
                     builtin,
                     externalValues()));
         }
@@ -127,8 +123,6 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     dependencies,
                     ruleFiles,
                     ruleDirectories,
-                    traceRuleFiles,
-                    traceRuleDirectories,
                     builtin,
                     outputFile,
                     externalValues()));
@@ -139,22 +133,16 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
         @Option(names = "--project", description = "Java project root. If present, common source/classes/dependency paths are discovered.")
         Path project;
 
-        @Option(names = "--rule", description = "SER rule file. Can be repeated.")
+        @Option(names = "--rule", description = "SER rule file (may include optional trace { } block). Can be repeated.")
         List<Path> ruleFiles = new ArrayList<>();
 
         @Option(names = {"--rule-dir", "--rules"}, description = "Directory containing .ser rule files. Can be repeated.")
         List<Path> ruleDirectories = new ArrayList<>();
 
-        @Option(names = "--trace-rule", description = "SER trace rule file. Can be repeated.")
-        List<Path> traceRuleFiles = new ArrayList<>();
-
-        @Option(names = "--trace-rules", description = "Directory containing .ser trace rule files. Can be repeated.")
-        List<Path> traceRuleDirectories = new ArrayList<>();
-
-        @Option(names = "--builtin", description = "Load rules and trace rules from the classpath.")
+        @Option(names = "--builtin", description = "Load built-in rules from the classpath.")
         boolean builtin;
 
-        @Option(names = "--external-values", description = "JSON file with external trace values.")
+        @Option(names = "--external-values", description = "JSON file with external values for value-trace patches.")
         Path externalValuesFile;
 
         Map<String, Map<String, List<String>>> externalValues() {

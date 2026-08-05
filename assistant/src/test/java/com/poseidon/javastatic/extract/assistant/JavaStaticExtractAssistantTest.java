@@ -36,10 +36,7 @@ class JavaStaticExtractAssistantTest {
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(fixture.ruleFile()),
-                List.of(),
-                List.of(),
-                List.of(),
-                false,
+                List.of(), false,
                 null));
 
         assertEquals("OK", report.status());
@@ -75,10 +72,7 @@ when annotation @Missing on method
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(missingRule),
-                List.of(),
-                List.of(),
-                List.of(),
-                false,
+                List.of(), false,
                 null));
 
         assertEquals("NO_MATCH", report.status());
@@ -98,10 +92,7 @@ when annotation @Missing on method
                 List.of(),
                 List.of(),
                 List.of(fixture.ruleFile()),
-                List.of(),
-                List.of(),
-                List.of(),
-                false,
+                List.of(), false,
                 output,
                 null));
 
@@ -115,17 +106,17 @@ when annotation @Missing on method
         Fixture fixture = fixture();
         Files.writeString(fixture.ruleFile(), Files.readString(fixture.ruleFile()) + """
 
-                trace "Unused Trace"
+                trace {
+                  from field
+                  when annotation @Value on field
 
-                from field
-                when annotation @Value on field
+                  let rawValue =
+                    from annotation @Value on field take attr(value)
 
-                let rawValue =
-                  from annotation @Value on field take attr(value)
-
-                build {
-                  namespace: "config"
-                  lookup: rawValue | normalize placeholderLookup
+                  build {
+                    namespace: "config"
+                    lookup: rawValue | normalize placeholderLookup
+                  }
                 }
                 """);
 
@@ -133,10 +124,7 @@ when annotation @Missing on method
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(fixture.ruleFile()),
-                List.of(),
-                List.of(),
-                List.of(),
-                false,
+                List.of(), false,
                 null));
 
         assertEquals("OK", report.status());

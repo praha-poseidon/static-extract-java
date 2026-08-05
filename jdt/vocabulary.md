@@ -43,23 +43,32 @@ from call take owner
 from literal "value" take value
 ```
 
-## Trace Sources
+## Value-trace (optional `trace { }` in the same rule file)
 
 ```ser
-from field
-when annotation @Value on field
+trace {
+  from field
+  when annotation @Value on field
 
-from call
-when method Environment.getProperty
-```
+  let rawValue =
+    from annotation @Value on field take attr(value)
 
-Trace rules may build external values such as:
+  build {
+    namespace: "config"
+    lookup: rawValue | normalize placeholderLookup
+    default: rawValue | normalize placeholderDefault
+  }
 
-```ser
-build {
-  namespace: "config"
-  lookup: rawValue | normalize placeholderLookup
-  default: rawValue | normalize placeholderDefault
+  from call
+  when method Environment.getProperty
+
+  let configLookup =
+    from argument[0] take value
+
+  build {
+    namespace: "config"
+    lookup: configLookup
+  }
 }
 ```
 

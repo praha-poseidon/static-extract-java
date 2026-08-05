@@ -39,19 +39,14 @@ import java.util.stream.Collectors;
 /**
  * Parses SER skeleton into the Java extractor model. Free atoms after find/from/when/take are
  * interpreted here using Java vocabulary — not by the shared grammar.
+ * Optional value-trace lives in the same file as {@code trace { ... }} after build.
  */
-public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
+public class AntlrSerRuleParser implements SerRuleParser {
 
     @Override
     public StaticExtractRule parse(String source) {
         SerParser parser = parser(source);
         return new RuleBuilder().visitRuleFile(parser.ruleFile());
-    }
-
-    @Override
-    public StaticTraceRuleSet parseTrace(String source) {
-        SerParser parser = parser(source);
-        return new RuleBuilder().visitTraceFile(parser.traceFile());
     }
 
     private SerParser parser(String source) {
@@ -74,13 +69,23 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
             find = applyWhenAtoms(find, ctx.whenDecl());
             List<LetSpec> lets = ctx.letDecl().stream().map(this::buildLet).toList();
             BuildSpec build = buildBuild(ctx.buildDecl());
+            StaticTraceRuleSet embedded =
+                    ctx.embeddedTrace() != null ? buildEmbeddedTrace(name, ctx.embeddedTrace()) : null;
             return new StaticExtractRule(
-                    name, null, true, 100, target.fact(), target.classifiers(), target.endpoint(), find, lets, build);
+                    name,
+                    null,
+                    true,
+                    100,
+                    target.fact(),
+                    target.classifiers(),
+                    target.endpoint(),
+                    find,
+                    lets,
+                    build,
+                    embedded);
         }
 
-        @Override
-        public StaticTraceRuleSet visitTraceFile(SerParser.TraceFileContext ctx) {
-            String name = unquote(ctx.traceDecl().STRING().getText());
+        private StaticTraceRuleSet buildEmbeddedTrace(String ruleName, SerParser.EmbeddedTraceContext ctx) {
             List<ExternalValueEntryRule> entries = new ArrayList<>();
             for (SerParser.TraceEntryContext entry : ctx.traceEntry()) {
                 TraceTargetKind target = traceTarget(atoms(entry.freeAtom()));
@@ -89,7 +94,7 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
                 BuildSpec build = buildBuild(entry.buildDecl());
                 entries.add(new ExternalValueEntryRule(target, match, lets, build));
             }
-            return new StaticTraceRuleSet(name, entries);
+            return new StaticTraceRuleSet(ruleName + "#trace", entries);
         }
 
         private RuleTarget ruleTarget(SerParser.RuleTargetDeclContext ctx) {

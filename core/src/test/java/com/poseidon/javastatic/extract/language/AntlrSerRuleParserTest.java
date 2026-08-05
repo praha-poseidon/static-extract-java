@@ -157,38 +157,49 @@ when annotation @Action on method
     }
 
     @Test
-    void parsesTraceExternalValueRules() {
+    void parsesEmbeddedTraceBlockInRuleFile() {
         String ser =
                 """
-                trace "Spring External Values"
+                rule "Spring External Values"
+                fact config
 
-                from field
-                when annotation @Value on field
-
-                let rawValue =
-                  from annotation @Value on field take attr(value)
+                find method
 
                 build {
-                  namespace: "config"
-                  lookup: rawValue | normalize placeholderLookup
-                  default: rawValue | normalize placeholderDefault
+                  ok: "true"
                 }
 
-                from call
-                when method Environment.getProperty
+                trace {
+                  from field
+                  when annotation @Value on field
 
-                let configLookup =
-                  from argument[0] take value
+                  let rawValue =
+                    from annotation @Value on field take attr(value)
 
-                build {
-                  namespace: "config"
-                  lookup: configLookup
+                  build {
+                    namespace: "config"
+                    lookup: rawValue | normalize placeholderLookup
+                    default: rawValue | normalize placeholderDefault
+                  }
+
+                  from call
+                  when method Environment.getProperty
+
+                  let configLookup =
+                    from argument[0] take value
+
+                  build {
+                    namespace: "config"
+                    lookup: configLookup
+                  }
                 }
                 """;
 
-        StaticTraceRuleSet rules = new AntlrSerRuleParser().parseTrace(ser);
+        StaticExtractRule rule = new AntlrSerRuleParser().parse(ser);
+        StaticTraceRuleSet rules = rule.embeddedTrace();
 
-        assertEquals("Spring External Values", rules.name());
+        assertNotNull(rules);
+        assertEquals("Spring External Values#trace", rules.name());
         assertEquals(2, rules.externalEntries().size());
         assertEquals(TraceTargetKind.FIELD, rules.externalEntries().get(0).target());
         assertEquals("namespace", rules.externalEntries().get(0).build().fields().keySet().iterator().next());
@@ -267,59 +278,69 @@ when annotation @Action on method
     void parsesGeneralTraceStuckPointConditions() {
         String ser =
                 """
-                trace "General Trace"
+                rule "General Trace"
+                fact general
 
-                from parameter
-                when parameter name input
-                when parameter type String
-                when annotation @Config on parameter
-
-                let lookupValue =
-                  from annotation @Config on parameter take attr(value)
+                find method
 
                 build {
-                  namespace: "config"
-                  lookup: lookupValue
+                  ok: "true"
                 }
 
-                from assignment
-                when assignment field baseUrl
+                trace {
+                  from parameter
+                  when parameter name input
+                  when parameter type String
+                  when annotation @Config on parameter
 
-                let assignedValue =
-                  from assignment take value
+                  let lookupValue =
+                    from annotation @Config on parameter take attr(value)
 
-                build {
-                  namespace: "config"
-                  lookup: assignedValue
-                }
+                  build {
+                    namespace: "config"
+                    lookup: lookupValue
+                  }
 
-                from method
-                when method name baseUrl
-                when annotation @Config on method
+                  from assignment
+                  when assignment field baseUrl
 
-                let methodLookup =
-                  from annotation @Config on method take attr(value)
+                  let assignedValue =
+                    from assignment take value
 
-                build {
-                  namespace: "config"
-                  lookup: methodLookup
-                }
+                  build {
+                    namespace: "config"
+                    lookup: assignedValue
+                  }
 
-                from call
-                when call name get
-                when call owner ConfigService
+                  from method
+                  when method name baseUrl
+                  when annotation @Config on method
 
-                let callLookup =
-                  from argument[0] take value
+                  let methodLookup =
+                    from annotation @Config on method take attr(value)
 
-                build {
-                  namespace: "config"
-                  lookup: callLookup
+                  build {
+                    namespace: "config"
+                    lookup: methodLookup
+                  }
+
+                  from call
+                  when call name get
+                  when call owner ConfigService
+
+                  let callLookup =
+                    from argument[0] take value
+
+                  build {
+                    namespace: "config"
+                    lookup: callLookup
+                  }
                 }
                 """;
 
-        StaticTraceRuleSet rules = new AntlrSerRuleParser().parseTrace(ser);
+        StaticTraceRuleSet rules = new AntlrSerRuleParser().parse(ser).embeddedTrace();
 
+        assertNotNull(rules);
         assertEquals(4, rules.externalEntries().size());
         assertEquals(TraceTargetKind.PARAMETER, rules.externalEntries().get(0).target());
         assertEquals("input", rules.externalEntries().get(0).match().parameterName());

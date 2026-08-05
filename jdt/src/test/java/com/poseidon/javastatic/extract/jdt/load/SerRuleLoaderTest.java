@@ -1,7 +1,6 @@
 package com.poseidon.javastatic.extract.jdt.load;
 
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
-import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -11,8 +10,10 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class SerRuleLoaderTest {
 
     @Test
@@ -22,13 +23,10 @@ class SerRuleLoaderTest {
         assertEquals(
                 List.of("Spring MVC HTTP Inbound", "RestTemplate HTTP Outbound"),
                 rules.stream().map(StaticExtractRule::name).toList());
-    }
-
-    @Test
-    void loadsJavaExtractorBuiltinTraceRules() {
-        List<StaticTraceRuleSet> rules = new SerRuleLoader().loadApplicationTraceRules();
-
-        assertEquals(List.of("Spring Config Trace"), rules.stream().map(StaticTraceRuleSet::name).toList());
+        StaticExtractRule outbound =
+                rules.stream().filter(r -> r.name().equals("RestTemplate HTTP Outbound")).findFirst().orElseThrow();
+        assertNotNull(outbound.embeddedTrace());
+        assertEquals(2, outbound.embeddedTrace().externalEntries().size());
     }
 
     @Test
@@ -53,42 +51,6 @@ class SerRuleLoaderTest {
     }
 
     @Test
-    void loadsTraceRulesFromFixedResourceDirectory(@TempDir Path tempDir) throws Exception {
-        write(
-                tempDir.resolve("static-extract/traces/index.txt"),
-                """
-                spring-config.ser
-                """);
-        write(
-                tempDir.resolve("static-extract/traces/spring-config.ser"),
-                """
-                trace "Custom Trace Rule"
-
-                from field
-when annotation @Value on field
-
-let rawValue =
-  from annotation @Value on field take attr(value)
-
-build {
-  namespace: "config"
-  lookup: rawValue | normalize placeholderLookup
-  default: rawValue | normalize placeholderDefault
-}
-                """);
-
-        try (URLClassLoader classLoader =
-                new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, getClass().getClassLoader())) {
-            List<StaticTraceRuleSet> rules = new SerRuleLoader(classLoader, new com.poseidon.javastatic.extract.language.AntlrSerRuleParser())
-                    .loadApplicationTraceRules();
-
-            assertEquals(
-                    List.of("Custom Trace Rule", "Spring Config Trace"),
-                    rules.stream().map(StaticTraceRuleSet::name).sorted().toList());
-        }
-    }
-
-    @Test
     void scansRuleDirectoryWhenRulesAreProvidedAsFiles(@TempDir Path tempDir) throws Exception {
         write(tempDir.resolve("a.ser"), minimalRule("A Rule"));
         write(tempDir.resolve("nested/b.ser"), minimalRule("B Rule"));
@@ -102,50 +64,46 @@ build {
     @Test
     void loadsExplicitFilesAndHandlesEmptyInputs(@TempDir Path tempDir) throws Exception {
         Path ruleFile = tempDir.resolve("rule.ser");
-        Path traceFile = tempDir.resolve("trace.ser");
         write(ruleFile, minimalRule("File Rule"));
-        write(
-                traceFile,
-                """
-                trace "File Trace"
-                """);
         SerRuleLoader loader = new SerRuleLoader();
 
         assertEquals(List.of(), loader.loadRulesFromFiles(null));
-        assertEquals(List.of(), loader.loadTraceRulesFromFiles(List.of()));
         assertEquals(List.of(), loader.loadRulesFromDirectory(tempDir.resolve("missing")));
         assertEquals("File Rule", loader.loadRulesFromFiles(List.of(ruleFile)).get(0).name());
-        assertEquals("File Trace", loader.loadTraceRulesFromFiles(List.of(traceFile)).get(0).name());
     }
 
     @Test
-    void loadsRuleAndTraceBlocksFromSameSerFile(@TempDir Path tempDir) throws Exception {
+    void loadsRuleWithEmbeddedTraceBlock(@TempDir Path tempDir) throws Exception {
         Path file = tempDir.resolve("combined.ser");
         write(
                 file,
-                minimalRule("Combined Rule")
-                        + "\n"
-                        + """
-                        trace "Combined Trace"
+                """
+                rule "Combined Rule"
+                endpoint CUSTOM inbound
+                find class
 
-                        from field
-                        when annotation @Value on field
+                build {
+                  kind: "CUSTOM"
+                }
 
-                        let rawValue =
-                          from annotation @Value on field take attr(value)
+                trace {
+                  from field
+                  when annotation @Value on field
 
-                        build {
-                          namespace: "config"
-                          lookup: rawValue | normalize placeholderLookup
-                        }
-                        """);
+                  let rawValue =
+                    from annotation @Value on field take attr(value)
 
-        SerRuleLoader loader = new SerRuleLoader();
+                  build {
+                    namespace: "config"
+                    lookup: rawValue | normalize placeholderLookup
+                  }
+                }
+                """);
 
-        assertEquals("Combined Rule", loader.loadRulesFromFiles(List.of(file)).get(0).name());
-        assertEquals("Combined Trace", loader.loadTraceRulesFromFiles(List.of(file)).get(0).name());
-        assertEquals("Combined Rule", loader.loadRulesFromDirectory(tempDir).get(0).name());
-        assertEquals("Combined Trace", loader.loadTraceRulesFromDirectory(tempDir).get(0).name());
+        StaticExtractRule rule = new SerRuleLoader().loadRulesFromFiles(List.of(file)).get(0);
+        assertEquals("Combined Rule", rule.name());
+        assertNotNull(rule.embeddedTrace());
+        assertEquals(1, rule.embeddedTrace().externalEntries().size());
     }
 
     @Test

@@ -190,35 +190,35 @@ when annotation @OperationDoc on method
                           lookupPath: fromLookupCall
                           returnedValue: returnedValue
                         }
-                        """);
-        StaticTraceRuleSet traceRules =
-                parser.parseTrace(
-                        """
-                        trace "Generic External Entries"
+                        
 
-                        from field
-                        when annotation @ConfigRef on field
+trace {
+                          from field
+                          when annotation @ConfigRef on field
 
-                        let rawValue =
-                          from annotation @ConfigRef on field take attr(value)
+                          let rawValue =
+                            from annotation @ConfigRef on field take attr(value)
 
-                        build {
-                          namespace: "config"
-                          lookup: rawValue | normalize placeholderLookup
-                          default: rawValue | normalize placeholderDefault
-                        }
+                          build {
+                            namespace: "config"
+                            lookup: rawValue | normalize placeholderLookup
+                            default: rawValue | normalize placeholderDefault
+                          }
 
-                        from call
-                        when method ConfigStore.lookup
+                          from call
+                          when method ConfigStore.lookup
 
-                        let lookupValue =
-                          from argument[0] take value
+                          let lookupValue =
+                            from argument[0] take value
 
-                        build {
-                          namespace: "config"
-                          lookup: lookupValue
-                        }
-                        """);
+                          build {
+                            namespace: "config"
+                            lookup: lookupValue
+                          }
+
+}
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -247,7 +247,7 @@ when annotation @OperationDoc on method
                         """);
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config",
                                 Map.of(
@@ -282,27 +282,27 @@ when annotation @ConfigProperty on field
                           field: fieldName
                           value: resolvedValue
                         }
-                        """);
-        StaticTraceRuleSet traceRules =
-                parser.parseTrace(
-                        """
-                        trace "ConfigProperty Trace"
+                        
 
-                        from field
-                        when annotation @ConfigProperty on field
+trace {
+                          from field
+                          when annotation @ConfigProperty on field
 
-                        let lookupValue =
-                          from annotation @ConfigProperty on field take attr(name)
+                          let lookupValue =
+                            from annotation @ConfigProperty on field take attr(name)
 
-                        let defaultValue =
-                          from annotation @ConfigProperty on field take attr(defaultValue)
+                          let defaultValue =
+                            from annotation @ConfigProperty on field take attr(defaultValue)
 
-                        build {
-                          namespace: "config"
-                          lookup: lookupValue
-                          default: defaultValue
-                        }
-                        """);
+                          build {
+                            namespace: "config"
+                            lookup: lookupValue
+                            default: defaultValue
+                          }
+
+}
+""");
+
         CompilationUnit cu =
                 parse(
                         """
@@ -320,7 +320,7 @@ when annotation @ConfigProperty on field
                         """);
         JdtTraceOptions options =
                 JdtTraceOptions.of(
-                        List.of(traceRules),
+                        List.of(),
                         new MapExternalValueResolver(Map.of(
                                 "config", Map.of("client.url", List.of("http://real")))));
 

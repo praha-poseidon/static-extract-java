@@ -73,21 +73,29 @@ let x =
   fallback ""
 ```
 
-## Trace
+## Optional value-trace (same file, after build)
 
 ```ser
-trace "Spring Value"
-from field
-when annotation @Value on field
+rule "..."
+fact ...
+find ...
+build { ... }
 
-let rawValue =
-  from annotation @Value on field take attr(value)
+trace {
+  from field
+  when annotation @Value on field
 
-build {
-  namespace: config
-  lookup: rawValue | normalize placeholderLookup
+  let rawValue =
+    from annotation @Value on field take attr(value)
+
+  build {
+    namespace: config
+    lookup: rawValue | normalize placeholderLookup
+  }
 }
 ```
+
+No separate `trace "name"` files.
 
 ## CLI
 

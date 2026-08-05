@@ -151,16 +151,14 @@ owner types from variable names when bindings are unavailable.
 
 运行时依赖 JDT binding 判断方法属于哪个类型。binding 不可用时，不会根据变量名猜测 owner 类型。
 
-## Trace Extension
+## Value-trace
 
-trace 扩展。
+Value-trace patches live in the same `.ser` rule file as an optional
+`trace { … }` block after `build`. There are no standalone trace files.
 
-`SerTraceRuleParser` lets callers replace the trace rule parser while still
-producing `StaticTraceRuleSet`.
+算值补丁写在同一条 `.ser` 的可选 `trace { … }` 块里（在 `build` 之后），不再使用独立 trace 文件。
 
-`SerTraceRuleParser` 允许调用方替换 trace 规则解析方式，但最终仍然产出 `StaticTraceRuleSet`。
+For JDT behavior that cannot be represented by the default model, implement
+`JdtTraceResolver` and register it with the runner builder.
 
-For JDT extractor behavior that cannot be represented by the default trace model,
-implement `JdtTraceResolver` and register it with the runner builder.
-
-如果某些 JDT 追踪行为无法用默认 trace 模型描述，可以实现 `JdtTraceResolver` 并注册到 runner builder。
+若默认模型表达不了，可实现 `JdtTraceResolver` 并注册到 runner builder。

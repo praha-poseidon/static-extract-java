@@ -11,8 +11,6 @@ public record RunRequest(
         List<Path> dependencies,
         List<Path> ruleFiles,
         List<Path> ruleDirectories,
-        List<Path> traceRuleFiles,
-        List<Path> traceRuleDirectories,
         boolean builtinRules,
         Path outputFile,
         Map<String, Map<String, List<String>>> externalValues) {}

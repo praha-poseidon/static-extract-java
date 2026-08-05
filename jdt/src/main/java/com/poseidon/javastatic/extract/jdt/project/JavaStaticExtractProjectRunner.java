@@ -7,7 +7,6 @@ import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceResolver;
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
 import com.poseidon.javastatic.extract.extractor.ExtractedFact;
 import com.poseidon.javastatic.extract.extractor.StaticExtractExtractor;
-import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -268,11 +267,6 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
             return this;
         }
 
-        public Builder classpathTraceRules(boolean enabled) {
-            runnerBuilder.classpathTraceRules(enabled);
-            return this;
-        }
-
         public Builder addRule(StaticExtractRule rule) {
             runnerBuilder.addRule(rule);
             return this;
@@ -280,16 +274,6 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
 
         public Builder addRules(List<StaticExtractRule> rules) {
             runnerBuilder.addRules(rules);
-            return this;
-        }
-
-        public Builder addTraceRuleSet(StaticTraceRuleSet traceRuleSet) {
-            runnerBuilder.addTraceRuleSet(traceRuleSet);
-            return this;
-        }
-
-        public Builder addTraceRuleSets(List<StaticTraceRuleSet> traceRuleSets) {
-            runnerBuilder.addTraceRuleSets(traceRuleSets);
             return this;
         }
 
@@ -310,11 +294,6 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
 
         public Builder rulesFromDirectory(Path directory) {
             runnerBuilder.rulesFromDirectory(directory);
-            return this;
-        }
-
-        public Builder traceRulesFromDirectory(Path directory) {
-            runnerBuilder.traceRulesFromDirectory(directory);
             return this;
         }
 
