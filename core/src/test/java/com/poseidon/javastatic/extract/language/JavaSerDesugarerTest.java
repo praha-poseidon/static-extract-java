@@ -52,8 +52,15 @@ class JavaSerDesugarerTest {
     }
 
     @Test
-    void leavesFromAnnotationOnUnchanged() {
+    void desugarsFromAnnotationOnLegacyOrder() {
         String input = "  from annotation on method @RouteGet take attr(value)\n";
+        String expected = "  from annotation @RouteGet on method take attr(value)\n";
+        assertEquals(expected, desugarer.apply(input));
+    }
+
+    @Test
+    void leavesPreferredFromAnnotationOrderUnchanged() {
+        String input = "  from annotation @RouteGet on method take attr(value)\n";
         assertEquals(input, desugarer.apply(input));
     }
 
