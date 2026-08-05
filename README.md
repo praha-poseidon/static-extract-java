@@ -59,3 +59,10 @@ Typical workflow: `init` → `try` / `diagnose` → `run`.
 
 - Spec: `../static-extract-spec`
 - JS extractor: `../static-extract-js`
+
+## Evolution (small steps)
+
+Java-side sugar inventory for grammar purification:
+
+- [docs/SUGAR-INVENTORY.md](docs/SUGAR-INVENTORY.md) (`step-A3`)
+- Plan lives in sibling spec: `../static-extract-spec/docs/SMALL-STEPS.md`
