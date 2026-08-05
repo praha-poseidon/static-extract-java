@@ -12,7 +12,6 @@ find class
 when annotation @AnnotationName on class
 find call Owner.methodName
 find call Owner.[methodA,methodB]
-# legacy (desugared): find call Owner.methodName
 find method
 when annotation @AnnotationName on method
 find method

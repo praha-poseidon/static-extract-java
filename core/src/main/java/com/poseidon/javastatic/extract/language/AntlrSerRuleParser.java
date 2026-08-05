@@ -37,25 +37,15 @@ import java.util.Map;
 
 public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
 
-    private final JavaSerDesugarer desugarer;
-
-    public AntlrSerRuleParser() {
-        this(new JavaSerDesugarer());
-    }
-
-    public AntlrSerRuleParser(JavaSerDesugarer desugarer) {
-        this.desugarer = desugarer != null ? desugarer : new JavaSerDesugarer();
-    }
-
     @Override
     public StaticExtractRule parse(String source) {
-        SerParser parser = parser(desugarer.apply(source));
+        SerParser parser = parser(source);
         return new RuleBuilder().visitRuleFile(parser.ruleFile());
     }
 
     @Override
     public StaticTraceRuleSet parseTrace(String source) {
-        SerParser parser = parser(desugarer.apply(source));
+        SerParser parser = parser(source);
         return new RuleBuilder().visitTraceFile(parser.traceFile());
     }
 
@@ -93,9 +83,7 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
         }
 
         /**
-         * Merge extract-rule {@code when annotation @X on element} into {@link FindSpec} so desugared
-         * {@code find method} + {@code when annotation …} keeps the same meaning as {@code find method
-         * with annotation}.
+         * Merge extract-rule {@code when annotation @X on element} into {@link FindSpec}.
          */
         private FindSpec applyFindWhens(FindSpec find, List<SerParser.WhenDeclContext> whens) {
             if (find == null || whens == null || whens.isEmpty()) {
