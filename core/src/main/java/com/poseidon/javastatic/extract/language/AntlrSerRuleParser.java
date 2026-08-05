@@ -37,15 +37,25 @@ import java.util.Map;
 
 public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
 
+    private final JavaSerDesugarer desugarer;
+
+    public AntlrSerRuleParser() {
+        this(new JavaSerDesugarer());
+    }
+
+    public AntlrSerRuleParser(JavaSerDesugarer desugarer) {
+        this.desugarer = desugarer != null ? desugarer : new JavaSerDesugarer();
+    }
+
     @Override
     public StaticExtractRule parse(String source) {
-        SerParser parser = parser(source);
+        SerParser parser = parser(desugarer.apply(source));
         return new RuleBuilder().visitRuleFile(parser.ruleFile());
     }
 
     @Override
     public StaticTraceRuleSet parseTrace(String source) {
-        SerParser parser = parser(source);
+        SerParser parser = parser(desugarer.apply(source));
         return new RuleBuilder().visitTraceFile(parser.traceFile());
     }
 
