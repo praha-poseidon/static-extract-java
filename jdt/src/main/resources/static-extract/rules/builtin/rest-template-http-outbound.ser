@@ -1,7 +1,7 @@
 rule "RestTemplate HTTP Outbound"
 endpoint HTTP outbound
 
-find method RestTemplate.[getForObject,getForEntity,postForObject,postForEntity,put,delete]
+find call RestTemplate.[getForObject,getForEntity,postForObject,postForEntity,put,delete]
 
 let rawUrl =
   from argument[0] take value

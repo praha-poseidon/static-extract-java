@@ -46,8 +46,22 @@ class JavaSerDesugarerTest {
     }
 
     @Test
-    void leavesNonSugarFindUnchanged() {
+    void desugarsFindMethodCallPatternToFindCall() {
         String input = "find method RestTemplate.getForObject\n";
+        String expected = "find call RestTemplate.getForObject\n";
+        assertEquals(expected, desugarer.apply(input));
+    }
+
+    @Test
+    void desugarsFindMethodCallListPattern() {
+        String input = "find method RestTemplate.[getForObject,postForObject]\n";
+        String expected = "find call RestTemplate.[getForObject,postForObject]\n";
+        assertEquals(expected, desugarer.apply(input));
+    }
+
+    @Test
+    void leavesBareFindMethodUnchanged() {
+        String input = "find method\nwhen annotation @GetMapping on method\n";
         assertEquals(input, desugarer.apply(input));
     }
 

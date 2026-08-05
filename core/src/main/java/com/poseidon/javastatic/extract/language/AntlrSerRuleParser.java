@@ -262,7 +262,9 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
                 return new FindSpec(JavaElementKind.CLASS, null, null, null);
             }
             if (ctx.methodPattern() != null) {
-                return new FindSpec(JavaElementKind.METHOD, null, null, methodSelector(ctx.methodPattern()));
+                // Owner.name / Owner.[a,b] always mean call sites in the Java executor
+                // (see docs/METHOD-VS-CALL.md). Prefer surface "find call …".
+                return new FindSpec(JavaElementKind.CALL, null, null, methodSelector(ctx.methodPattern()));
             }
             if (ctx.genericFindKind != null) {
                 return new FindSpec(

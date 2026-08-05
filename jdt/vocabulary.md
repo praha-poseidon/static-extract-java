@@ -9,8 +9,9 @@ they also update the extractor.
 ```ser
 find class
 find class with annotation @AnnotationName
-find method Owner.methodName
-find method Owner.[methodA,methodB]
+find call Owner.methodName
+find call Owner.[methodA,methodB]
+# legacy (desugared): find method Owner.methodName
 find method with annotation @AnnotationName
 find method with annotation @*Mapping
 find field fieldName
