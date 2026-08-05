@@ -43,6 +43,21 @@ where annotation @RestController on class  # scope: only controller types
 when annotation @PostMapping on method     # anchor: method has PostMapping
 ```
 
+### Regex (preferred for flexible filters)
+
+Use the `matches` keyword with a quoted Java regex:
+
+```ser
+# class simple name or FQN
+where class name matches ".*Controller$"
+where class matches ".*Client$|.*Facade$"
+
+# still exact when no matches
+where class name UserController
+```
+
+Patterns use `java.util.regex` (`find` semantics — not forced full-string unless you add `^…$`).
+
 ### Same URL / annotation on A and B — only B
 
 ```ser

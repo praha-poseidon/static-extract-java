@@ -8,9 +8,8 @@ import com.poseidon.javastatic.extract.source.MethodSelector;
  * Find target plus optional filters.
  *
  * <p>{@code annotation} applies to the find target (method/field/class).
- * {@code className} / {@code classAnnotation} narrow to an enclosing type
- * (e.g. only methods on class {@code UserController} or types with
- * {@code @RestController}).
+ * {@code className} / {@code classAnnotation} narrow to an enclosing type.
+ * When {@code classNameRegex} is true, {@code className} is a Java regex.
  */
 public record FindSpec(
         JavaElementKind target,
@@ -19,6 +18,7 @@ public record FindSpec(
         AnnotationSelector annotation,
         MethodSelector method,
         String className,
+        boolean classNameRegex,
         AnnotationSelector classAnnotation) {
 
     public FindSpec(
@@ -33,6 +33,7 @@ public record FindSpec(
                 annotation,
                 method,
                 null,
+                false,
                 null);
     }
 
@@ -42,13 +43,26 @@ public record FindSpec(
             String name,
             AnnotationSelector annotation,
             MethodSelector method) {
-        this(target, targetKind, name, annotation, method, null, null);
+        this(target, targetKind, name, annotation, method, null, false, null);
+    }
+
+    public FindSpec(
+            JavaElementKind target,
+            String targetKind,
+            String name,
+            AnnotationSelector annotation,
+            MethodSelector method,
+            String className,
+            AnnotationSelector classAnnotation) {
+        this(target, targetKind, name, annotation, method, className, false, classAnnotation);
     }
 
     public FindSpec withFilters(
             AnnotationSelector annotation,
             String className,
+            boolean classNameRegex,
             AnnotationSelector classAnnotation) {
-        return new FindSpec(target, targetKind, name, annotation, method, className, classAnnotation);
+        return new FindSpec(
+                target, targetKind, name, annotation, method, className, classNameRegex, classAnnotation);
     }
 }

@@ -153,13 +153,14 @@ public class AntlrSerRuleParser implements SerRuleParser {
             return new FindSpec(null, kind, selector, null, null);
         }
 
-        /** where = scope: enclosing class name / annotation on class. */
+        /** where = scope: enclosing class name / annotation on class (supports matches regex). */
         private FindSpec applyWhereAtoms(FindSpec find, List<SerParser.WhereDeclContext> wheres) {
             if (find == null || wheres == null || wheres.isEmpty()) {
                 return find;
             }
             AnnotationSelector classAnnotation = find.classAnnotation();
             String className = find.className();
+            boolean classNameRegex = find.classNameRegex();
             for (SerParser.WhereDeclContext w : wheres) {
                 if (w.IF() != null) {
                     continue;
@@ -168,12 +169,27 @@ public class AntlrSerRuleParser implements SerRuleParser {
                 if (a.isEmpty()) {
                     continue;
                 }
+                // class name matches ".*Controller$"  |  class matches "..."
+                if ("class".equals(a.get(0)) && a.size() >= 3 && "matches".equals(a.get(1))) {
+                    className = stripQuotes(a.get(2));
+                    classNameRegex = true;
+                    continue;
+                }
+                if ("class".equals(a.get(0))
+                        && a.size() >= 4
+                        && "name".equals(a.get(1))
+                        && "matches".equals(a.get(2))) {
+                    className = stripQuotes(a.get(3));
+                    classNameRegex = true;
+                    continue;
+                }
                 if ("class".equals(a.get(0)) && a.size() >= 2) {
                     if ("name".equals(a.get(1)) && a.size() >= 3) {
                         className = stripQuotes(a.get(2));
-                    } else {
+                    } else if (!"matches".equals(a.get(1))) {
                         className = stripQuotes(a.get(1));
                     }
+                    classNameRegex = looksLikeRegex(className);
                     continue;
                 }
                 if (a.size() >= 4 && "annotation".equals(a.get(0)) && "on".equals(a.get(2))) {
@@ -190,6 +206,7 @@ public class AntlrSerRuleParser implements SerRuleParser {
                     find.annotation(),
                     find.method(),
                     className,
+                    classNameRegex,
                     classAnnotation);
         }
 
@@ -208,7 +225,6 @@ public class AntlrSerRuleParser implements SerRuleParser {
                 if (a.isEmpty()) {
                     continue;
                 }
-                // annotation @X on method|field (not class — class is where)
                 if (a.size() >= 4 && "annotation".equals(a.get(0)) && "on".equals(a.get(2))) {
                     JavaElementKind on = javaKind(a.get(3));
                     if (on == JavaElementKind.CLASS) {
@@ -237,6 +253,7 @@ public class AntlrSerRuleParser implements SerRuleParser {
                     annotation,
                     find.method(),
                     find.className(),
+                    find.classNameRegex(),
                     find.classAnnotation());
         }
 
@@ -255,7 +272,16 @@ public class AntlrSerRuleParser implements SerRuleParser {
                     find.annotation(),
                     find.method(),
                     find.className(),
+                    find.classNameRegex(),
                     find.classAnnotation());
+        }
+
+        private static boolean looksLikeRegex(String pattern) {
+            if (pattern == null || pattern.isBlank()) {
+                return false;
+            }
+            return pattern.matches(".*[.+?^${}\\[\\]|\\\\].*")
+                    || (pattern.contains("*") && !pattern.matches("\\*?[^*]+\\*?"));
         }
 
         private static String stripQuotes(String text) {

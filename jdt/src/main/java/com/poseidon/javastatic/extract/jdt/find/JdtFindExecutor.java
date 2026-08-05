@@ -49,21 +49,36 @@ public class JdtFindExecutor {
         }
         if (find.className() != null && !find.className().isBlank()) {
             String simple = typeDeclaration.getName().getIdentifier();
+            String fqn = typeDeclaration.resolveBinding() != null
+                    ? typeDeclaration.resolveBinding().getQualifiedName()
+                    : simple;
             String expected = find.className().trim();
-            if (!simple.equals(expected) && !simple.matches(globToRegex(expected))) {
-                // also allow FQN suffix: com.example.UserController
-                String fqn = typeDeclaration.resolveBinding() != null
-                        ? typeDeclaration.resolveBinding().getQualifiedName()
-                        : simple;
-                if (!fqn.equals(expected) && !fqn.endsWith("." + expected)) {
+            if (find.classNameRegex()) {
+                if (!regexMatches(expected, simple) && !regexMatches(expected, fqn)) {
                     return false;
                 }
+            } else if (!simple.equals(expected)
+                    && !simple.matches(globToRegex(expected))
+                    && !fqn.equals(expected)
+                    && !fqn.endsWith("." + expected)) {
+                return false;
             }
         }
         if (find.classAnnotation() != null) {
             return JdtAnnotationSupport.hasAnnotation(typeDeclaration.modifiers(), find.classAnnotation());
         }
         return true;
+    }
+
+    private static boolean regexMatches(String pattern, String value) {
+        if (pattern == null || value == null) {
+            return false;
+        }
+        try {
+            return java.util.regex.Pattern.compile(pattern).matcher(value).find();
+        } catch (RuntimeException ex) {
+            return false;
+        }
     }
 
     private static String globToRegex(String glob) {
