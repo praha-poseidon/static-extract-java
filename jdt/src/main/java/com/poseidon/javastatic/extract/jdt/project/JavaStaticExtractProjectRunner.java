@@ -67,6 +67,9 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
         return new Builder();
     }
 
+    /**
+     * Independent parse mode: read sources from disk and parse with JDT, then extract.
+     */
     public List<StaticExtractResult> extract() {
         List<Path> javaFiles = javaFiles();
         List<String> classpath = classpathEntries();
@@ -80,6 +83,22 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
                     javaFile.toAbsolutePath().normalize().toString()));
         }
         return results;
+    }
+
+    /**
+     * Shared AST mode: use a CompilationUnit already parsed by the host (e.g. code graph).
+     * Does not re-parse the file.
+     */
+    public List<StaticExtractResult> extract(
+            CompilationUnit compilationUnit,
+            String projectFilePath,
+            String absoluteFilePath) {
+        return runner.extract(compilationUnit, projectFilePath, absoluteFilePath);
+    }
+
+    /** Access the rule engine for advanced shared-AST batching. */
+    public JavaStaticExtractRunner extractRunner() {
+        return runner;
     }
 
     @Override

@@ -162,3 +162,18 @@ For JDT behavior that cannot be represented by the default model, implement
 `JdtTraceResolver` and register it with the runner builder.
 
 若默认模型表达不了，可实现 `JdtTraceResolver` 并注册到 runner builder。
+
+## Shared AST vs independent parse
+
+| Mode | API | Who parses |
+|------|-----|------------|
+| **B independent** | `JavaStaticExtractProjectRunner.extract()` or CLI | Runner reads files + `ASTParser` |
+| **A shared** | `extract(CompilationUnit, projectPath, absPath)` or `JavaStaticExtractRunner.extract(cu, …)` | Host already has CU |
+
+```java
+// A — reuse graph's CompilationUnit
+runner.extract(existingCu, "src/Main.java", absPath);
+
+// B — full project scan (CLI / standalone)
+projectRunner.extract();
+```
