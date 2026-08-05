@@ -1,7 +1,8 @@
 rule "Spring MVC HTTP Inbound"
 endpoint HTTP inbound
 
-find method with annotation @*Mapping
+find method
+when annotation @*Mapping on method
 
 let basePath =
   from annotation on class @RequestMapping take attr(value)
@@ -28,4 +29,3 @@ build {
   httpMethod: httpMethod
   path: concat(basePath, methodPath) | normalize slash | normalize pathVariable
 }
-
