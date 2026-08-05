@@ -1,10 +1,13 @@
-# JavaSerDesugarer status
+# JavaSerDesugarer (compatibility layer)
 
-| Step | Behavior | Status |
-|---|---|---|
-| B2 | `find X with annotation @Y` → `find X` + `when annotation @Y on X` | done |
-| E2 | `from annotation on elem @Y` → `from annotation @Y on elem` | done |
-| F4 | `find method Owner.name` → `find call Owner.name` | done |
-| B5 | All parse entry points use desugar | done |
+Rewrites **legacy** SER text to the public clean surface before ANTLR parse.
 
-See also `static-extract-spec/docs/METHOD-VS-CALL.md`.
+| Rewrite | Status |
+|---|---|
+| `find X with annotation @Y` | done |
+| `from annotation on elem @Y` | done |
+| `from decorator on elem Name` | done |
+| `find method Owner.x` | done → `find call Owner.x` |
+
+Public grammar: `static-extract-spec/docs/CLEAN-G4.md`.
+JS has a matching desugar in `antlr-ser-parser.ts` / `extractor/ser-desugar.mjs`.

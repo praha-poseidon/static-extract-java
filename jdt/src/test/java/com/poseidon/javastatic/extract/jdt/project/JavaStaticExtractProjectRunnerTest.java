@@ -133,10 +133,11 @@ class JavaStaticExtractProjectRunnerTest {
                         """
                         rule "Spring Mapping"
                         endpoint HTTP inbound
-                        find method with annotation @GetMapping
+                        find method
+when annotation @GetMapping on method
 
                         let path =
-                          from annotation on method @GetMapping take attr(value)
+                          from annotation @GetMapping on method take attr(value)
 
                         build {
                           path: path

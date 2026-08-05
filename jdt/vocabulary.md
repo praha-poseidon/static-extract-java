@@ -8,14 +8,18 @@ they also update the extractor.
 
 ```ser
 find class
-find class with annotation @AnnotationName
+find class
+when annotation @AnnotationName on class
 find call Owner.methodName
 find call Owner.[methodA,methodB]
-# legacy (desugared): find method Owner.methodName
-find method with annotation @AnnotationName
-find method with annotation @*Mapping
+# legacy (desugared): find call Owner.methodName
+find method
+when annotation @AnnotationName on method
+find method
+when annotation @*Mapping on method
 find field fieldName
-find field with annotation @AnnotationName
+find field
+when annotation @AnnotationName on field
 ```
 
 ## Source Expressions

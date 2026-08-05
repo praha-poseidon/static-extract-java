@@ -26,7 +26,8 @@ Rules should read like a description of code:
 rule "Spring MVC HTTP Inbound"
 fact backend_endpoint
 
-find method with annotation @*Mapping
+find method
+when annotation @*Mapping on method
 
 let basePath =
   from annotation @RequestMapping on class take attr(value)
@@ -171,9 +172,9 @@ restTemplate.getForObject(path, User.class);
 Rules should describe the Java method being invoked:
 
 ```ser
-find method RestTemplate.[getForObject,postForObject,exchange]
-find method Router.[get,post,put,delete,patch]
-find method KafkaTemplate.send
+find call RestTemplate.[getForObject,postForObject,exchange]
+find call Router.[get,post,put,delete,patch]
+find call KafkaTemplate.send
 ```
 
 The extractor decides whether a `method` rule means a declaration, such as a

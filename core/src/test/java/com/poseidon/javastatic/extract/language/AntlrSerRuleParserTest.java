@@ -21,20 +21,21 @@ class AntlrSerRuleParserTest {
                 rule "Spring MVC HTTP Inbound"
                 endpoint HTTP inbound
 
-                find method with annotation @*Mapping
+                find method
+when annotation @*Mapping on method
 
                 let basePath =
-                  from annotation on class @RequestMapping take attr(value)
-                  from annotation on class @RequestMapping take attr(path)
+                  from annotation @RequestMapping on class take attr(value)
+                  from annotation @RequestMapping on class take attr(path)
                   default ""
 
                 let methodPath =
-                  from annotation on method @*Mapping take attr(value)
-                  from annotation on method @*Mapping take attr(path)
+                  from annotation @*Mapping on method take attr(value)
+                  from annotation @*Mapping on method take attr(path)
                   default ""
 
                 let httpMethod =
-                  from annotation on method @*Mapping take name
+                  from annotation @*Mapping on method take name
                   map {
                     GetMapping: GET
                     PostMapping: POST
@@ -67,10 +68,11 @@ class AntlrSerRuleParserTest {
                 rule "React Button Action"
                 fact ui_action
 
-                find method with annotation @Action
+                find method
+when annotation @Action on method
 
                 let label =
-                  from annotation on method @Action take attr(label)
+                  from annotation @Action on method take attr(label)
 
                 build {
                   label: label
@@ -164,7 +166,7 @@ class AntlrSerRuleParserTest {
                 when annotation @Value on field
 
                 let rawValue =
-                  from annotation on field @Value take attr(value)
+                  from annotation @Value on field take attr(value)
 
                 build {
                   namespace: "config"
@@ -200,7 +202,7 @@ class AntlrSerRuleParserTest {
                 """
                 rule "General Elements"
                 endpoint CUSTOM outbound
-                find method Client.[load,save]
+                find call Client.[load,save]
 
                 let argRaw =
                   from argument[0] take raw
@@ -273,7 +275,7 @@ class AntlrSerRuleParserTest {
                 when annotation @Config on parameter
 
                 let lookupValue =
-                  from annotation on parameter @Config take attr(value)
+                  from annotation @Config on parameter take attr(value)
 
                 build {
                   namespace: "config"
@@ -296,7 +298,7 @@ class AntlrSerRuleParserTest {
                 when annotation @Config on method
 
                 let methodLookup =
-                  from annotation on method @Config take attr(value)
+                  from annotation @Config on method take attr(value)
 
                 build {
                   namespace: "config"
@@ -360,7 +362,8 @@ class AntlrSerRuleParserTest {
                                 """
                                 rule "Config Fields"
                                 endpoint CONFIG inbound
-                                find field with annotation @ConfigProperty
+                                find field
+when annotation @ConfigProperty on field
 
                                 let fieldName =
                                   from field take name
@@ -406,7 +409,7 @@ class AntlrSerRuleParserTest {
                                 """
                                 rule "Broken"
                                 endpoint CUSTOM inbound
-                                find method with
+                                find
                                 build {
                                   value: "x"
                                 }

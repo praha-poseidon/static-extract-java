@@ -50,10 +50,11 @@ class JavaStaticExtractCliTest {
                 rule "Missing"
                 fact backend_endpoint
 
-                find method with annotation @Missing
+                find method
+when annotation @Missing on method
 
                 let path =
-                  from annotation on method @Missing take attr(value)
+                  from annotation @Missing on method take attr(value)
 
                 build {
                   path: path
@@ -164,10 +165,11 @@ class JavaStaticExtractCliTest {
                 rule "Custom HTTP Inbound"
                 fact backend_endpoint
 
-                find method with annotation @RouteGet
+                find method
+when annotation @RouteGet on method
 
                 let path =
-                  from annotation on method @RouteGet take attr(value)
+                  from annotation @RouteGet on method take attr(value)
 
                 build {
                   path: path

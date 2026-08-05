@@ -30,7 +30,8 @@ class JavaStaticExtractRunnerTest {
                         """
                         rule "Trace Field Value"
                         endpoint CUSTOM inbound
-                        find method with annotation @Endpoint
+                        find method
+when annotation @Endpoint on method
 
                         let basePath =
                           from field basePath take value
@@ -48,7 +49,7 @@ class JavaStaticExtractRunnerTest {
 when annotation @Value on field
 
 let rawValue =
-  from annotation on field @Value take attr(value)
+  from annotation @Value on field take attr(value)
 
 build {
   namespace: "config"
@@ -109,7 +110,8 @@ build {
                                 """
                                 rule "Custom Trace Resolver"
                                 endpoint CUSTOM inbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let basePath =
                                   from field basePath take value

@@ -68,7 +68,7 @@ class SerRuleLoaderTest {
 when annotation @Value on field
 
 let rawValue =
-  from annotation on field @Value take attr(value)
+  from annotation @Value on field take attr(value)
 
 build {
   namespace: "config"
@@ -132,7 +132,7 @@ build {
                         when annotation @Value on field
 
                         let rawValue =
-                          from annotation on field @Value take attr(value)
+                          from annotation @Value on field take attr(value)
 
                         build {
                           namespace: "config"

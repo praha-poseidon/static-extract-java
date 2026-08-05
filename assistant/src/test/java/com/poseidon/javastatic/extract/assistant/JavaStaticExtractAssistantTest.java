@@ -60,10 +60,11 @@ class JavaStaticExtractAssistantTest {
                 rule "Missing"
                 endpoint HTTP inbound
 
-                find method with annotation @Missing
+                find method
+when annotation @Missing on method
 
                 let path =
-                  from annotation on method @Missing take attr(value)
+                  from annotation @Missing on method take attr(value)
 
                 build {
                   path: path
@@ -120,7 +121,7 @@ class JavaStaticExtractAssistantTest {
                 when annotation @Value on field
 
                 let rawValue =
-                  from annotation on field @Value take attr(value)
+                  from annotation @Value on field take attr(value)
 
                 build {
                   namespace: "config"
@@ -166,13 +167,14 @@ class JavaStaticExtractAssistantTest {
                 rule "Custom HTTP Inbound"
                 endpoint HTTP inbound
 
-                find method with annotation @RouteGet
+                find method
+when annotation @RouteGet on method
 
                 let httpMethod =
                   from literal GET take value
 
                 let path =
-                  from annotation on method @RouteGet take attr(value)
+                  from annotation @RouteGet on method take attr(value)
 
                 build {
                   httpMethod: httpMethod

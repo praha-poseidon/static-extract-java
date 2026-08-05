@@ -79,7 +79,7 @@ class DefaultJdtStaticExtractEngineTest {
                                 """
                                 rule "Router HTTP Inbound"
                                 endpoint HTTP inbound
-                                find method Router.[get,post]
+                                find call Router.[get,post]
 
                                 let path =
                                   from argument[0] take value
@@ -165,7 +165,8 @@ class DefaultJdtStaticExtractEngineTest {
                                 """
                                 rule "General Java Elements"
                                 endpoint CUSTOM inbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let className =
                                   from class take name
@@ -232,7 +233,8 @@ class DefaultJdtStaticExtractEngineTest {
                                 """
                                 rule "Trace Field Value"
                                 endpoint CUSTOM inbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let basePath =
                                   from field basePath take value
@@ -251,7 +253,7 @@ class DefaultJdtStaticExtractEngineTest {
 when annotation @Value on field
 
 let rawValue =
-  from annotation on field @Value take attr(value)
+  from annotation @Value on field take attr(value)
 
 build {
   namespace: "config"
@@ -301,7 +303,8 @@ build {
                                 """
                                 rule "Trace Call Value"
                                 endpoint CUSTOM outbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let basePath =
                                   from return take value
@@ -368,7 +371,8 @@ build {
                                 """
                                 rule "Trace Parameter Value"
                                 endpoint CUSTOM inbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let basePath =
                                   from return take value
@@ -387,7 +391,7 @@ build {
                                 when annotation @Value on parameter
 
                                 let rawValue =
-                                  from annotation on parameter @Value take attr(value)
+                                  from annotation @Value on parameter take attr(value)
 
                                 build {
                                   namespace: "config"
@@ -434,7 +438,8 @@ build {
                                 """
                                 rule "Trace Assigned Field"
                                 endpoint CUSTOM inbound
-                                find method with annotation @Endpoint
+                                find method
+when annotation @Endpoint on method
 
                                 let basePath =
                                   from return take value
@@ -527,20 +532,21 @@ build {
                     rule "Spring MVC HTTP Inbound"
                     endpoint HTTP inbound
 
-                    find method with annotation @*Mapping
+                    find method
+when annotation @*Mapping on method
 
                     let basePath =
-                      from annotation on class @RequestMapping take attr(value)
-                      from annotation on class @RequestMapping take attr(path)
+                      from annotation @RequestMapping on class take attr(value)
+                      from annotation @RequestMapping on class take attr(path)
                       default ""
 
                     let methodPath =
-                      from annotation on method @*Mapping take attr(value)
-                      from annotation on method @*Mapping take attr(path)
+                      from annotation @*Mapping on method take attr(value)
+                      from annotation @*Mapping on method take attr(path)
                       default ""
 
                     let httpMethod =
-                      from annotation on method @*Mapping take name
+                      from annotation @*Mapping on method take name
                       map {
                         GetMapping: GET
                         PostMapping: POST
@@ -560,7 +566,7 @@ build {
                     rule "RestTemplate HTTP Outbound"
                     endpoint HTTP outbound
 
-                    find method RestTemplate.[getForObject,getForEntity,postForObject,postForEntity,put,delete]
+                    find call RestTemplate.[getForObject,getForEntity,postForObject,postForEntity,put,delete]
 
                     let rawUrl =
                       from argument[0] take value

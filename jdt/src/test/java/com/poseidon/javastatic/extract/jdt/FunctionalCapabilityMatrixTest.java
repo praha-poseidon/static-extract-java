@@ -28,22 +28,23 @@ class FunctionalCapabilityMatrixTest {
                         """
                         rule "Generic Annotated Operation"
                         endpoint BUSINESS inbound
-                        find method with annotation @OperationDoc
+                        find method
+when annotation @OperationDoc on method
 
                         let aggregate =
-                          from annotation on class @EntityDoc take attr(value)
+                          from annotation @EntityDoc on class take attr(value)
 
                         let operation =
-                          from annotation on method @OperationDoc take attr(name)
+                          from annotation @OperationDoc on method take attr(name)
 
                         let declaredPath =
-                          from annotation on method @OperationDoc take attr(path)
+                          from annotation @OperationDoc on method take attr(path)
 
                         let parameterName =
                           from parameter accountId take name
 
                         let parameterLookup =
-                          from annotation on parameter @Input take attr(value)
+                          from annotation @Input on parameter take attr(value)
 
                         let prefix =
                           from field PREFIX take value
@@ -110,7 +111,7 @@ class FunctionalCapabilityMatrixTest {
                         """
                         rule "Generic Method Call"
                         endpoint BUSINESS outbound
-                        find method Gateway.submit
+                        find call Gateway.submit
 
                         let action =
                           from argument[0] take value
@@ -172,7 +173,8 @@ class FunctionalCapabilityMatrixTest {
                         """
                         rule "Generic External Trace"
                         endpoint BUSINESS outbound
-                        find method with annotation @OperationDoc
+                        find method
+when annotation @OperationDoc on method
 
                         let fromAnnotatedField =
                           from field annotatedBase take value
@@ -198,7 +200,7 @@ class FunctionalCapabilityMatrixTest {
                         when annotation @ConfigRef on field
 
                         let rawValue =
-                          from annotation on field @ConfigRef take attr(value)
+                          from annotation @ConfigRef on field take attr(value)
 
                         build {
                           namespace: "config"
@@ -267,7 +269,8 @@ class FunctionalCapabilityMatrixTest {
                         """
                         rule "Config Fields"
                         endpoint CONFIG inbound
-                        find field with annotation @ConfigProperty
+                        find field
+when annotation @ConfigProperty on field
 
                         let fieldName =
                           from field take name
@@ -289,10 +292,10 @@ class FunctionalCapabilityMatrixTest {
                         when annotation @ConfigProperty on field
 
                         let lookupValue =
-                          from annotation on field @ConfigProperty take attr(name)
+                          from annotation @ConfigProperty on field take attr(name)
 
                         let defaultValue =
-                          from annotation on field @ConfigProperty take attr(defaultValue)
+                          from annotation @ConfigProperty on field take attr(defaultValue)
 
                         build {
                           namespace: "config"
