@@ -1,0 +1,28 @@
+target/
+dist/
+/build/
+.gradle/
+node_modules/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# OS and local files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+
+# Maven release/local artifacts
+release.properties
+dependency-reduced-pom.xml
+
+# Test and coverage outputs
+jacoco.exec
+*.hprof
