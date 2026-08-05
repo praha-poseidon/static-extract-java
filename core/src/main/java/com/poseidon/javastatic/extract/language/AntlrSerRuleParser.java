@@ -249,40 +249,34 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
         }
 
         private FindSpec buildFind(SerParser.FindDeclContext ctx) {
-            if (ctx.annotationRef() != null) {
-                JavaElementKind target;
-                if (ctx.CLASS() != null) {
-                    target = JavaElementKind.CLASS;
-                } else if (ctx.FIELD() != null) {
-                    target = JavaElementKind.FIELD;
-                } else {
-                    target = JavaElementKind.METHOD;
-                }
-                return new FindSpec(
-                        target,
-                        null,
-                        annotation(target, ctx.annotationRef()),
-                        null);
-            }
-            if (ctx.FIELD() != null) {
+            // F1–F3 "with annotation" removed from Ser.g4 (step-C3). Annotation finds arrive as
+            // generic/bare find + when annotation, merged in applyFindWhens after desugar.
+            if (ctx.FIELD() != null && ctx.fieldName != null) {
                 return new FindSpec(
                         JavaElementKind.FIELD,
-                        ctx.fieldName != null ? ctx.fieldName.getText() : null,
+                        ctx.fieldName.getText(),
                         null,
                         null);
             }
-            if (ctx.CLASS() != null) {
+            if (ctx.CLASS() != null && ctx.methodPattern() == null && ctx.genericFindKind == null) {
                 return new FindSpec(JavaElementKind.CLASS, null, null, null);
             }
             if (ctx.methodPattern() != null) {
                 return new FindSpec(JavaElementKind.METHOD, null, null, methodSelector(ctx.methodPattern()));
             }
-            return new FindSpec(
-                    null,
-                    ctx.genericFindKind.getText(),
-                    ctx.genericFindName != null ? ctx.genericFindName.getText() : null,
-                    null,
-                    null);
+            if (ctx.genericFindKind != null) {
+                return new FindSpec(
+                        null,
+                        ctx.genericFindKind.getText(),
+                        ctx.genericFindName != null ? ctx.genericFindName.getText() : null,
+                        null,
+                        null);
+            }
+            // bare "find field" without name — treat as field kind
+            if (ctx.FIELD() != null) {
+                return new FindSpec(JavaElementKind.FIELD, null, null, null);
+            }
+            throw new IllegalArgumentException("unsupported find declaration");
         }
 
         private LetSpec buildLet(SerParser.LetDeclContext ctx) {
