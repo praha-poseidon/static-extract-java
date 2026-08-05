@@ -52,6 +52,22 @@ class JavaSerDesugarerTest {
     }
 
     @Test
+    void leavesFromAnnotationOnUnchanged() {
+        String input = "  from annotation on method @RouteGet take attr(value)\n";
+        assertEquals(input, desugarer.apply(input));
+    }
+
+    @Test
+    void leavesTraceWhenAnnotationUnchanged() {
+        String input =
+                """
+                from field
+                when annotation @Value on field
+                """;
+        assertEquals(input, desugarer.apply(input));
+    }
+
+    @Test
     void nullStaysNull() {
         assertNull(desugarer.apply(null));
     }

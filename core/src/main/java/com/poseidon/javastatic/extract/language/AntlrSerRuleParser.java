@@ -76,7 +76,7 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
         public StaticExtractRule visitRuleFile(SerParser.RuleFileContext ctx) {
             String name = unquote(ctx.ruleDecl().STRING().getText());
             RuleTarget target = ruleTarget(ctx.ruleTargetDecl());
-            FindSpec find = buildFind(ctx.findDecl());
+            FindSpec find = applyFindWhens(buildFind(ctx.findDecl()), ctx.whenDecl());
             List<LetSpec> lets = ctx.letDecl().stream().map(this::buildLet).toList();
             BuildSpec build = buildBuild(ctx.buildDecl());
             return new StaticExtractRule(
@@ -90,6 +90,57 @@ public class AntlrSerRuleParser implements SerRuleParser, SerTraceRuleParser {
                     find,
                     lets,
                     build);
+        }
+
+        /**
+         * Merge extract-rule {@code when annotation @X on element} into {@link FindSpec} so desugared
+         * {@code find method} + {@code when annotation …} keeps the same meaning as {@code find method
+         * with annotation}.
+         */
+        private FindSpec applyFindWhens(FindSpec find, List<SerParser.WhenDeclContext> whens) {
+            if (find == null || whens == null || whens.isEmpty()) {
+                return find;
+            }
+            AnnotationSelector annotation = find.annotation();
+            JavaElementKind onElement = null;
+            for (SerParser.WhenDeclContext condition : whens) {
+                if (condition.annotationRef() != null && condition.elementRef() != null) {
+                    onElement = element(condition.elementRef());
+                    annotation = annotation(onElement, condition.annotationRef());
+                }
+            }
+            if (annotation == null || annotation == find.annotation()) {
+                return resolveGenericTarget(find);
+            }
+            JavaElementKind target = find.target() != null ? find.target() : onElement;
+            if (target == null) {
+                target = javaKind(find.targetKind());
+            }
+            return new FindSpec(target, find.name(), annotation, find.method());
+        }
+
+        private FindSpec resolveGenericTarget(FindSpec find) {
+            if (find.target() != null || find.targetKind() == null) {
+                return find;
+            }
+            JavaElementKind kind = javaKind(find.targetKind());
+            if (kind == null) {
+                return find;
+            }
+            return new FindSpec(kind, find.name(), find.annotation(), find.method());
+        }
+
+        private static JavaElementKind javaKind(String targetKind) {
+            if (targetKind == null) {
+                return null;
+            }
+            return switch (targetKind.toLowerCase(Locale.ROOT)) {
+                case "method" -> JavaElementKind.METHOD;
+                case "class" -> JavaElementKind.CLASS;
+                case "field" -> JavaElementKind.FIELD;
+                case "parameter" -> JavaElementKind.PARAMETER;
+                default -> null;
+            };
         }
 
         private RuleTarget ruleTarget(SerParser.RuleTargetDeclContext ctx) {

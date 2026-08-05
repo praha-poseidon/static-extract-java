@@ -12,6 +12,9 @@ import java.util.regex.Pattern;
  *   <li>B1: identity shell
  *   <li>B2: {@code find (method|class|field) with annotation @X} → {@code find …} + {@code when
  *       annotation @X on …}
+ *   <li>B3: {@code from annotation on …} kept (still required by g4 / value model); normalized
+ *       whitespace only if needed later
+ *   <li>B4: trace {@code when annotation}/{@code when method} kept (trace path already uses them)
  * </ul>
  */
 public final class JavaSerDesugarer {
@@ -40,6 +43,8 @@ public final class JavaSerDesugarer {
         if (source == null) {
             return null;
         }
+        // B3/B4: from annotation on / when annotation / when method — pass through until core g4
+        // gains equivalent free-form source/when without exclusive productions.
         return desugarFindWithAnnotation(source);
     }
 
