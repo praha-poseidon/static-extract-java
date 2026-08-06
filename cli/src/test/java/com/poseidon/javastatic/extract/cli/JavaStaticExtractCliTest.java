@@ -99,6 +99,24 @@ when annotation @Missing on method
     }
 
     @Test
+    void tryCommandAcceptsInlineRuleTextAndInlineExternalValuesJson() throws Exception {
+        Fixture fixture = fixture();
+        String ser = Files.readString(fixture.ruleFile());
+
+        CliOutput output = execute(
+                "try",
+                "--project", fixture.project().toString(),
+                "--source", fixture.javaFile().toString(),
+                "--rule-text", ser,
+                "--external-values", "{\"config\":{\"unused\":[\"value\"]}}");
+
+        assertEquals(0, output.exitCode());
+        assertTrue(output.stdout().contains("\"resultCount\" : 1"));
+        assertTrue(output.stdout().contains("inline:1"));
+        assertTrue(output.stdout().contains("/api/users"));
+    }
+
+    @Test
     void commandPrintsStructuredError() throws Exception {
         Fixture fixture = fixture();
 

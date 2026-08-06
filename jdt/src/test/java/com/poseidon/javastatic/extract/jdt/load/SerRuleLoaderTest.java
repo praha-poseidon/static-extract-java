@@ -17,16 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SerRuleLoaderTest {
 
     @Test
-    void loadAllReturnsJavaExtractorBuiltinRules() {
-        List<StaticExtractRule> rules = new SerRuleLoader().loadAll();
-
-        assertEquals(
-                List.of("Spring MVC HTTP Inbound", "RestTemplate HTTP Outbound"),
-                rules.stream().map(StaticExtractRule::name).toList());
-        StaticExtractRule outbound =
-                rules.stream().filter(r -> r.name().equals("RestTemplate HTTP Outbound")).findFirst().orElseThrow();
-        assertNotNull(outbound.embeddedTrace());
-        assertEquals(2, outbound.embeddedTrace().externalEntries().size());
+    void loadAllShipsNoBuiltinRules() {
+        assertEquals(List.of(), new SerRuleLoader().loadAll());
     }
 
     @Test
@@ -39,14 +31,11 @@ class SerRuleLoaderTest {
         write(tempDir.resolve("static-extract/rules/custom/http.ser"), minimalRule("Custom HTTP Rule"));
 
         try (URLClassLoader classLoader =
-                new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, getClass().getClassLoader())) {
+                new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader())) {
             List<StaticExtractRule> rules = new SerRuleLoader(classLoader, new com.poseidon.javastatic.extract.language.AntlrSerRuleParser())
                     .loadApplicationRules();
 
-            assertEquals(
-                    List.of("Custom HTTP Rule", "RestTemplate HTTP Outbound", "Spring MVC HTTP Inbound"),
-                    rules.stream().map(StaticExtractRule::name).sorted().toList());
-            assertTrue(rules.stream().anyMatch(rule -> "Custom HTTP Rule".equals(rule.name())));
+            assertEquals(List.of("Custom HTTP Rule"), rules.stream().map(StaticExtractRule::name).toList());
         }
     }
 
@@ -70,6 +59,17 @@ class SerRuleLoaderTest {
         assertEquals(List.of(), loader.loadRulesFromFiles(null));
         assertEquals(List.of(), loader.loadRulesFromDirectory(tempDir.resolve("missing")));
         assertEquals("File Rule", loader.loadRulesFromFiles(List.of(ruleFile)).get(0).name());
+    }
+
+    @Test
+    void loadsRulesFromInMemorySources() {
+        SerRuleLoader loader = new SerRuleLoader();
+
+        assertEquals(List.of(), loader.loadRulesFromSources(null));
+        assertEquals(List.of(), loader.loadRulesFromSources(List.of("  ", "")));
+        assertEquals(
+                "Inline Rule",
+                loader.loadRulesFromSources(List.of(minimalRule("Inline Rule"))).get(0).name());
     }
 
     @Test
@@ -114,7 +114,7 @@ class SerRuleLoaderTest {
 
         write(tempDir.resolve("static-extract/rules/index.txt"), "missing.ser");
         try (URLClassLoader classLoader =
-                new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, getClass().getClassLoader())) {
+                new URLClassLoader(new java.net.URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader())) {
             SerRuleLoader loader = new SerRuleLoader(classLoader, new com.poseidon.javastatic.extract.language.AntlrSerRuleParser());
             assertThrows(IllegalStateException.class, loader::loadApplicationRules);
         }

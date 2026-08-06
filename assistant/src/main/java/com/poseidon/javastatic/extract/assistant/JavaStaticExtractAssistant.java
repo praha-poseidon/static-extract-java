@@ -56,7 +56,7 @@ public final class JavaStaticExtractAssistant {
                 List.of(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.builtinRules(),
+                request.ruleSources(),
                 request.externalValues());
         List<Path> files = resolveInputPaths(request.project(), request.files());
         files.forEach(builder::source);
@@ -65,7 +65,7 @@ public final class JavaStaticExtractAssistant {
                 "OK",
                 normalizeOrNull(request.project()),
                 strings(files),
-                ruleInputs(request.ruleFiles(), request.ruleDirectories(), request.builtinRules()),
+                ruleInputs(request.ruleFiles(), request.ruleDirectories(), request.ruleSources()),
                 results.size(),
                 results);
     }
@@ -76,7 +76,7 @@ public final class JavaStaticExtractAssistant {
                 request.files(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.builtinRules(),
+                request.ruleSources(),
                 request.externalValues()));
         List<SourceFacts> facts = safeList(request.files()).stream()
                 .map(file -> resolveInputPath(request.project(), file))
@@ -97,7 +97,7 @@ public final class JavaStaticExtractAssistant {
                 request.dependencies(),
                 request.ruleFiles(),
                 request.ruleDirectories(),
-                request.builtinRules(),
+                request.ruleSources(),
                 request.externalValues());
         List<ExtractedFact> results = builder.build().extractFacts();
         if (request.outputFile() != null) {
@@ -106,7 +106,7 @@ public final class JavaStaticExtractAssistant {
         return new RunReport(
                 "OK",
                 normalizeOrNull(request.project()),
-                ruleInputs(request.ruleFiles(), request.ruleDirectories(), request.builtinRules()),
+                ruleInputs(request.ruleFiles(), request.ruleDirectories(), request.ruleSources()),
                 results.size(),
                 results,
                 request.outputFile() == null ? null : normalize(request.outputFile()).toString());
@@ -119,13 +119,13 @@ public final class JavaStaticExtractAssistant {
             List<Path> dependencies,
             List<Path> ruleFiles,
             List<Path> ruleDirectories,
-            boolean builtinRules,
+            List<String> ruleSources,
             Map<String, Map<String, List<String>>> externalValues) {
-        // Value-trace patches live in each rule file as optional trace { } blocks.
         JavaStaticExtractProjectRunner.Builder builder = JavaStaticExtractProjectRunner.builder()
                 .project(project)
-                .classpathRules(builtinRules)
+                .classpathRules(false)
                 .addRules(loader.loadRulesFromFiles(safeList(ruleFiles)))
+                .rulesFromSources(safeList(ruleSources))
                 .externalValues(externalValues == null ? Map.of() : externalValues);
         safeList(sources).forEach(builder::source);
         safeList(classes).forEach(builder::classes);
@@ -141,7 +141,7 @@ public final class JavaStaticExtractAssistant {
         if (safeList(request.files()).isEmpty()) {
             throw new IllegalArgumentException("At least one Java source file is required.");
         }
-        validateRules(request.ruleFiles(), request.ruleDirectories(), request.builtinRules());
+        validateRules(request.ruleFiles(), request.ruleDirectories(), request.ruleSources());
     }
 
     private void validateRunRequest(RunRequest request) {
@@ -151,12 +151,15 @@ public final class JavaStaticExtractAssistant {
         if (request.project() == null && safeList(request.sources()).isEmpty()) {
             throw new IllegalArgumentException("Pass a project directory or at least one source path.");
         }
-        validateRules(request.ruleFiles(), request.ruleDirectories(), request.builtinRules());
+        validateRules(request.ruleFiles(), request.ruleDirectories(), request.ruleSources());
     }
 
-    private void validateRules(List<Path> ruleFiles, List<Path> ruleDirectories, boolean builtinRules) {
-        if (!builtinRules && safeList(ruleFiles).isEmpty() && safeList(ruleDirectories).isEmpty()) {
-            throw new IllegalArgumentException("Pass at least one SER rule file, rule directory, or enable builtin rules.");
+    private void validateRules(List<Path> ruleFiles, List<Path> ruleDirectories, List<String> ruleSources) {
+        if (safeList(ruleFiles).isEmpty()
+                && safeList(ruleDirectories).isEmpty()
+                && safeList(ruleSources).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Pass at least one SER rule file, rule directory, or rule source text.");
         }
     }
 
@@ -176,13 +179,17 @@ public final class JavaStaticExtractAssistant {
         }
     }
 
-    private List<String> ruleInputs(List<Path> ruleFiles, List<Path> ruleDirectories, boolean builtinRules) {
+    private List<String> ruleInputs(List<Path> ruleFiles, List<Path> ruleDirectories, List<String> ruleSources) {
         Set<String> inputs = new LinkedHashSet<>();
-        if (builtinRules) {
-            inputs.add("classpath:builtin");
-        }
         strings(ruleFiles).forEach(inputs::add);
         strings(ruleDirectories).forEach(inputs::add);
+        int inline = 0;
+        for (String source : safeList(ruleSources)) {
+            if (source != null && !source.isBlank()) {
+                inline++;
+                inputs.add("inline:" + inline);
+            }
+        }
         return List.copyOf(inputs);
     }
 

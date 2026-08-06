@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,7 +37,8 @@ class JavaStaticExtractAssistantTest {
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(fixture.ruleFile()),
-                List.of(), false,
+                List.of(),
+                List.of(),
                 null));
 
         assertEquals("OK", report.status());
@@ -47,6 +49,24 @@ class JavaStaticExtractAssistantTest {
         assertEquals("http_inbound", result.factType());
         assertEquals("HTTP", result.classifiers().get("category"));
         assertEquals("inbound", result.classifiers().get("direction"));
+    }
+
+    @Test
+    void tryRuleAcceptsInlineRuleSourceAndExternalValuesDictionary() throws Exception {
+        Fixture fixture = fixture();
+        String ser = Files.readString(fixture.ruleFile());
+
+        TryReport report = assistant.tryRule(new TryRequest(
+                fixture.project(),
+                List.of(fixture.javaFile()),
+                List.of(),
+                List.of(),
+                List.of(ser),
+                Map.of("config", Map.of("unused", List.of("value")))));
+
+        assertEquals("OK", report.status());
+        assertEquals(1, report.resultCount());
+        assertTrue(report.ruleInputs().contains("inline:1"));
     }
 
     @Test
@@ -72,7 +92,8 @@ when annotation @Missing on method
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(missingRule),
-                List.of(), false,
+                List.of(),
+                List.of(),
                 null));
 
         assertEquals("NO_MATCH", report.status());
@@ -92,7 +113,8 @@ when annotation @Missing on method
                 List.of(),
                 List.of(),
                 List.of(fixture.ruleFile()),
-                List.of(), false,
+                List.of(),
+                List.of(),
                 output,
                 null));
 
@@ -124,7 +146,8 @@ when annotation @Missing on method
                 fixture.project(),
                 List.of(fixture.javaFile()),
                 List.of(fixture.ruleFile()),
-                List.of(), false,
+                List.of(),
+                List.of(),
                 null));
 
         assertEquals("OK", report.status());

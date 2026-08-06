@@ -12,6 +12,7 @@ import picocli.CommandLine.Option;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     files,
                     ruleFiles,
                     ruleDirectories,
-                    builtin,
+                    ruleSources(),
                     externalValues()));
         }
     }
@@ -95,7 +96,7 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     files,
                     ruleFiles,
                     ruleDirectories,
-                    builtin,
+                    ruleSources(),
                     externalValues()));
         }
     }
@@ -123,7 +124,7 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
                     dependencies,
                     ruleFiles,
                     ruleDirectories,
-                    builtin,
+                    ruleSources(),
                     outputFile,
                     externalValues()));
         }
@@ -133,28 +134,43 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
         @Option(names = "--project", description = "Java project root. If present, common source/classes/dependency paths are discovered.")
         Path project;
 
-        @Option(names = "--rule", description = "SER rule file (may include optional trace { } block). Can be repeated.")
+        @Option(names = "--rule", description = "SER rule file path (may include optional trace { } block). Can be repeated.")
         List<Path> ruleFiles = new ArrayList<>();
 
         @Option(names = {"--rule-dir", "--rules"}, description = "Directory containing .ser rule files. Can be repeated.")
         List<Path> ruleDirectories = new ArrayList<>();
 
-        @Option(names = "--builtin", description = "Load built-in rules from the classpath.")
-        boolean builtin;
+        /** Inline SER rule text (one rule document per option). Project-scoped rules at call time. */
+        @Option(names = {"--rule-text", "--rule-source"},
+                description = "Inline SER rule text (one rule per option). Can be repeated.")
+        List<String> ruleTexts = new ArrayList<>();
 
-        @Option(names = "--external-values", description = "JSON file with external values for value-trace patches.")
-        Path externalValuesFile;
+        @Option(names = "--external-values",
+                description = "External-values dictionary as a JSON file path, or inline JSON object string.")
+        String externalValuesInput;
+
+        List<String> ruleSources() {
+            return ruleTexts == null ? List.of() : List.copyOf(ruleTexts);
+        }
 
         Map<String, Map<String, List<String>>> externalValues() {
-            if (externalValuesFile == null) {
+            if (externalValuesInput == null || externalValuesInput.isBlank()) {
                 return Map.of();
             }
+            String raw = externalValuesInput.trim();
             try {
+                if (!raw.startsWith("{") && !raw.startsWith("[")) {
+                    Path path = Path.of(raw);
+                    if (Files.isRegularFile(path)) {
+                        raw = Files.readString(path, StandardCharsets.UTF_8);
+                    }
+                }
                 return objectMapper().readValue(
-                        Files.readString(externalValuesFile),
+                        raw,
                         new TypeReference<Map<String, Map<String, List<String>>>>() {});
             } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to read external values JSON: " + externalValuesFile, e);
+                throw new IllegalArgumentException(
+                        "Failed to parse external values (JSON file path or inline JSON): " + externalValuesInput, e);
             }
         }
     }
@@ -199,17 +215,9 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
         try {
             err.println(objectMapper.writeValueAsString(Map.of(
                     "status", "ERROR",
-                    "message", rootMessage(error))));
-        } catch (IOException ignored) {
-            err.println("{\"status\":\"ERROR\",\"message\":\"" + rootMessage(error) + "\"}");
+                    "message", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage())));
+        } catch (IOException e) {
+            err.println("{\"status\":\"ERROR\",\"message\":\"Failed to serialize error.\"}");
         }
-    }
-
-    private String rootMessage(Throwable error) {
-        Throwable current = error;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current.getMessage() == null ? current.getClass().getName() : current.getMessage();
     }
 }

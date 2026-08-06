@@ -18,9 +18,12 @@ class ExampleProjectTest {
     @Test
     void extractsEndpointsFromExampleProject() throws IOException {
         Path project = Path.of("src/test/resources/example-project");
+        Path exampleRules = Path.of("src/test/resources/example-rules");
         List<StaticExtractResult> results =
                 JavaStaticExtractProjectRunner.builder()
                         .project(project)
+                        .classpathRules(false)
+                        .rulesFromDirectory(exampleRules)
                         .externalValues(Map.of(
                                 "config", Map.of(
                                         "users.base-url", List.of("http://users.internal"))))

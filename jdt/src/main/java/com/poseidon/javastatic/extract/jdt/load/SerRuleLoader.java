@@ -19,6 +19,11 @@ import java.util.stream.Stream;
 /**
  * Loads SER rule files. Each file is one rule (optional {@code trace { }} block in the same file).
  * Standalone trace files are not supported.
+ *
+ * <p>This module ships no built-in rules. Prefer {@link #loadRulesFromSources},
+ * {@link #loadRulesFromFiles}, or {@link #loadRulesFromDirectory} at call time.
+ * Classpath packaging under {@value #APPLICATION_RULE_BASE} is optional for hosts that embed
+ * their own rule set.
  */
 public class SerRuleLoader {
 
@@ -60,6 +65,29 @@ public class SerRuleLoader {
             return List.of();
         }
         return files.stream().map(this::loadRuleFile).toList();
+    }
+
+    /**
+     * Parse SER rule text in memory. Each string is one rule file (one {@code rule …} plus optional
+     * {@code trace { }}). Prefer this when rules are project-scoped and passed per extract call.
+     */
+    public List<StaticExtractRule> loadRulesFromSources(List<String> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return List.of();
+        }
+        List<StaticExtractRule> rules = new ArrayList<>();
+        for (int i = 0; i < sources.size(); i++) {
+            String source = sources.get(i);
+            if (source == null || source.isBlank()) {
+                continue;
+            }
+            try {
+                rules.add(parser.parse(source));
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse SER rule source #" + (i + 1), e);
+            }
+        }
+        return rules;
     }
 
     private List<StaticExtractRule> loadRulesFromClasspath(String base, boolean required) {

@@ -55,34 +55,18 @@ but rules that need method-owner matching are more accurate with them.
 
 规则加载。
 
-Classpath rule loading uses fixed directories plus `index.txt`.
+This extractor ships **no built-in SER rules**. Pass rules per call via:
 
-classpath 规则加载使用固定目录和 `index.txt`。
+本 extractor **不携带内置 SER 规则**。每次调用通过以下方式传入规则：
 
-```text
-static-extract/rules/index.txt
-static-extract/traces/index.txt
-```
+- in-memory SER strings (`rulesFromSources` / `--rule-text`)
+- filesystem files (`rulesFromFiles` / `--rule`)
+- directories of `*.ser` (`rulesFromDirectory` / `--rule-dir`)
 
-This extractor owns its Java built-in rules under:
+Optional classpath packaging (`static-extract/rules/index.txt`) remains supported for
+hosts that embed their own rule set, but this module does not ship one.
 
-```text
-src/main/resources/static-extract/rules/
-src/main/resources/static-extract/traces/
-```
-
-`static-extract-java --builtin` loads those Java/JDT rules from the extractor
-classpath. Other extractors should keep their own built-in rules beside their own
-extractor implementation.
-
-Entries in each index are relative paths under that directory.
-
-每个 index 里的内容都是相对当前目录的规则文件路径。
-
-For filesystem input, `SerRuleLoader` can scan a directory recursively and read
-every `*.ser` file directly.
-
-如果规则来自文件系统目录，`SerRuleLoader` 可以递归扫描目录并直接读取所有 `*.ser` 文件。
+可选的 classpath 打包仍支持宿主自带规则集，但本模块不再自带任何规则文件。
 
 ## Output
 

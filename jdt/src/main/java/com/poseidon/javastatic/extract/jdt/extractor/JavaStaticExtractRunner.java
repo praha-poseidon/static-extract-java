@@ -75,7 +75,8 @@ public class JavaStaticExtractRunner {
         private final List<StaticExtractRule> rules = new ArrayList<>();
         private final List<JdtTraceResolver> traceResolvers = new ArrayList<>();
         private ExternalValueResolver externalValueResolver = new MapExternalValueResolver(Map.of());
-        private boolean loadClasspathRules = true;
+        /** Optional classpath-packaged rules (none shipped; off by default). */
+        private boolean loadClasspathRules = false;
 
         private Builder() {
             this(new SerRuleLoader());
@@ -124,6 +125,18 @@ public class JavaStaticExtractRunner {
 
         public Builder rulesFromFiles(List<Path> files) {
             return addRules(loader.loadRulesFromFiles(files));
+        }
+
+        /** In-memory SER strings (one rule text each). Project-scoped rules at call time. */
+        public Builder rulesFromSources(List<String> sources) {
+            return addRules(loader.loadRulesFromSources(sources));
+        }
+
+        public Builder ruleSource(String source) {
+            if (source != null && !source.isBlank()) {
+                return rulesFromSources(List.of(source));
+            }
+            return this;
         }
 
         public Builder externalValueResolver(ExternalValueResolver resolver) {

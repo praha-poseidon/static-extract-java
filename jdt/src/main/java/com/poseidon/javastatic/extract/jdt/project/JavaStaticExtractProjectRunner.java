@@ -316,6 +316,17 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
             return this;
         }
 
+        /** In-memory SER strings (one rule text each). Project-scoped rules at call time. */
+        public Builder rulesFromSources(List<String> sources) {
+            runnerBuilder.rulesFromSources(sources);
+            return this;
+        }
+
+        public Builder ruleSource(String source) {
+            runnerBuilder.ruleSource(source);
+            return this;
+        }
+
         public JavaStaticExtractProjectRunner build() {
             Path normalizedProject = normalize(project);
             List<Path> effectiveSources = resolveSources(normalizedProject);

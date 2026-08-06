@@ -88,12 +88,10 @@ class JavaStaticExtractRunnerTest {
     }
 
     @Test
-    void shipsJavaExtractorRulesByDefault() {
+    void shipsNoRulesByDefault() {
         JavaStaticExtractRunner runner = JavaStaticExtractRunner.builder().build();
 
-        assertEquals(
-                List.of("Spring MVC HTTP Inbound", "RestTemplate HTTP Outbound"),
-                runner.rules().stream().map(StaticExtractRule::name).toList());
+        assertEquals(List.of(), runner.rules());
     }
 
     @Test
@@ -195,10 +193,12 @@ class JavaStaticExtractRunnerTest {
                         .addTraceResolver(null)
                         .addTraceResolvers(null)
                         .externalValueResolver(null)
+                        .classpathRules(true)
                         .rulesFromDirectory(java.nio.file.Path.of("rules"))
                         .rulesFromFiles(List.of(java.nio.file.Path.of("a.ser")))
                         .build();
 
+        // loadAll + directory + files (mocked loader returns one rule each path)
         assertEquals(3, runner.rules().size());
         assertEquals(List.of(), runner.extract(null, "Missing.java", null));
         assertEquals(List.of(), runner.extract(parse("class A {}"), null, "A.java", null));
