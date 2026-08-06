@@ -7,6 +7,8 @@ import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 import com.poseidon.javastatic.extract.trace.TraceTargetKind;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -372,7 +374,7 @@ when annotation @Action on method
         assertEquals("Condition Filter", rule.name());
         assertEquals("route", rule.fact().type());
         assertEquals("call", rule.find().targetKind());
-        assertEquals("[get,post,delete]", rule.find().name());
+        assertEquals(List.of("get", "post", "delete"), rule.find().method().names());
     }
 
     @Test

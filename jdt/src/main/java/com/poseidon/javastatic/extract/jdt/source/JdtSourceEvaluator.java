@@ -39,14 +39,24 @@ public class JdtSourceEvaluator {
         if (source.take() == null || source.take().kind() == null) {
             return List.of();
         }
+        // Resolve fluent chain relative to the call anchor when requested.
+        ASTNode chainResolved = resolveChainAnchor(source, context.anchorNode());
         if (source.element() == JavaElementKind.ANNOTATION) {
             return annotationValues(source, context);
         }
-        if (source.element() == JavaElementKind.ARGUMENT && context.anchorNode() instanceof MethodInvocation invocation) {
-            return argumentValues(source, context, invocation);
+        if (source.element() == JavaElementKind.ARGUMENT) {
+            MethodInvocation invocation = asInvocation(chainResolved != null ? chainResolved : context.anchorNode());
+            if (invocation != null) {
+                return argumentValues(source, context, invocation);
+            }
+            return List.of();
         }
-        if (source.element() == JavaElementKind.CALL && context.anchorNode() instanceof MethodInvocation invocation) {
-            return callValues(source, invocation);
+        if (source.element() == JavaElementKind.CALL) {
+            MethodInvocation invocation = asInvocation(chainResolved != null ? chainResolved : context.anchorNode());
+            if (invocation != null) {
+                return callValues(source, invocation);
+            }
+            return List.of();
         }
         if (source.element() == JavaElementKind.METHOD) {
             return methodValues(source, context.anchorNode());
@@ -101,6 +111,105 @@ public class JdtSourceEvaluator {
             }
         }
         return ValueSupport.dedupe(out);
+    }
+
+    /**
+     * Navigate a fluent MethodInvocation chain from the find anchor.
+     *
+     * <pre>
+     * client.post().uri("/x").body(...)
+     *        ^post   ^uri     ^body
+     * prev of uri = post; next of post = uri
+     * </pre>
+     */
+    private ASTNode resolveChainAnchor(SourceSpec source, ASTNode anchor) {
+        if (source == null) {
+            return null;
+        }
+        Integer offset = source.chainOffset();
+        String callName = source.chainCallName();
+        if ((offset == null || offset == 0) && (callName == null || callName.isBlank())) {
+            return null;
+        }
+        MethodInvocation current = asInvocation(anchor);
+        if (current == null) {
+            return null;
+        }
+        if (callName != null && !callName.isBlank()) {
+            int direction = offset != null && offset < 0 ? -1 : 1;
+            int maxHops = 32;
+            MethodInvocation cursor = direction > 0 ? nextInChain(current) : prevInChain(current);
+            while (cursor != null && maxHops-- > 0) {
+                if (chainNameMatches(callName, cursor.getName().getIdentifier())) {
+                    return cursor;
+                }
+                cursor = direction > 0 ? nextInChain(cursor) : prevInChain(cursor);
+            }
+            if (chainNameMatches(callName, current.getName().getIdentifier())) {
+                return current;
+            }
+            return null;
+        }
+        int steps = Math.abs(offset);
+        MethodInvocation cursor = current;
+        for (int i = 0; i < steps; i++) {
+            cursor = offset > 0 ? nextInChain(cursor) : prevInChain(cursor);
+            if (cursor == null) {
+                return null;
+            }
+        }
+        return cursor;
+    }
+
+    private static MethodInvocation asInvocation(ASTNode node) {
+        if (node instanceof MethodInvocation inv) {
+            return inv;
+        }
+        return null;
+    }
+
+    private static boolean chainNameMatches(String expected, String actual) {
+        if (expected == null || actual == null) {
+            return false;
+        }
+        if (expected.equals(actual) || "*".equals(expected)) {
+            return true;
+        }
+        try {
+            return java.util.regex.Pattern.compile(expected).matcher(actual).find();
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    /** Receiver side: foo().bar() → prev of bar is foo(). */
+    private static MethodInvocation prevInChain(MethodInvocation invocation) {
+        Expression expr = invocation.getExpression();
+        while (expr instanceof org.eclipse.jdt.core.dom.ParenthesizedExpression parens) {
+            expr = parens.getExpression();
+        }
+        if (expr instanceof MethodInvocation prev) {
+            return prev;
+        }
+        return null;
+    }
+
+    /** Outer call: foo().bar() → next of foo is bar(). */
+    private static MethodInvocation nextInChain(MethodInvocation invocation) {
+        ASTNode parent = invocation.getParent();
+        while (parent instanceof org.eclipse.jdt.core.dom.ParenthesizedExpression) {
+            parent = parent.getParent();
+        }
+        if (parent instanceof MethodInvocation outer) {
+            Expression expr = outer.getExpression();
+            while (expr instanceof org.eclipse.jdt.core.dom.ParenthesizedExpression parens) {
+                expr = parens.getExpression();
+            }
+            if (expr == invocation) {
+                return outer;
+            }
+        }
+        return null;
     }
 
     private List<String> argumentValues(SourceSpec source, JdtEvalContext context, MethodInvocation invocation) {

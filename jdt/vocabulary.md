@@ -103,6 +103,32 @@ from call take owner
 from literal "value" take value
 ```
 
+### Fluent call chain (`from chain …`)
+
+For `client.post().uri("/api").body(...)`, one `find` anchors one link; `chain`
+moves to the previous/next call on the same expression:
+
+```ser
+find call post
+
+let httpMethod =
+  from call take name
+
+let path =
+  from chain next uri argument[0] take value
+```
+
+| form | meaning |
+|------|---------|
+| `from chain prev take name` | previous call’s method name |
+| `from chain next take name` | next call’s method name |
+| `from chain next argument[0] take value` | next call’s first arg |
+| `from chain next uri argument[0] take value` | walk next until call named `uri`, then arg0 |
+| `from chain prev post take name` | walk prev until `post` |
+| `from chain next 2 …` | skip two steps |
+
+`prev` / `previous` = receiver side; `next` = outer fluent call.
+
 ## Pipelines (build and let)
 
 Same steps on build fields and, after parse, on let values:

@@ -498,6 +498,54 @@ trace {
         assertEquals("/api/users", results.get(0).fields().get("path"));
     }
 
+    
+    @Test
+    void webClientPostUriChainExtractsMethodAndPath() {
+        StaticExtractRule rule =
+                new AntlrSerRuleParser()
+                        .parse(
+                                """
+                                rule "WebClient post uri chain"
+                                fact http_outbound
+
+                                find call post
+
+                                let httpMethod =
+                                  from call take name
+
+                                let path =
+                                  from chain next uri argument[0] take value
+
+                                build {
+                                  method: httpMethod
+                                  path: path
+                                }
+                                """);
+        CompilationUnit cu =
+                parse(
+                        """
+                        package com.example;
+
+                        class WebClient {
+                          WebClient post() { return this; }
+                          WebClient uri(String path) { return this; }
+                          void retrieve() {}
+                        }
+
+                        class Client {
+                          void call(WebClient client) {
+                            client.post().uri("/api/users").retrieve();
+                          }
+                        }
+                        """);
+        TypeDeclaration type = typeNamed(cu, "Client");
+        List<StaticExtractResult> results =
+                new DefaultJdtStaticExtractEngine().execute(rule, cu, type, "Client.java", null);
+        assertEquals(1, results.size());
+        assertEquals("post", results.get(0).fields().get("method"));
+        assertEquals("/api/users", results.get(0).fields().get("path"));
+    }
+
     private CompilationUnit parse(String source) {
         ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
         parser.setKind(ASTParser.K_COMPILATION_UNIT);

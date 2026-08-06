@@ -148,7 +148,8 @@ public class AntlrSerRuleParser implements SerRuleParser {
                 if (selector != null && selector.contains(".") && !selector.startsWith("[")) {
                     return new FindSpec(JavaElementKind.CALL, null, null, methodSelectorFromText(selector));
                 }
-                return new FindSpec(JavaElementKind.CALL, selector, null, null);
+                // find call post  /  find call [get,post]  → MethodSelector by name(s)
+                return new FindSpec(JavaElementKind.CALL, null, null, methodSelectorFromText(selector != null ? selector : "*"));
             }
             return new FindSpec(null, kind, selector, null, null);
         }
@@ -432,6 +433,14 @@ public class AntlrSerRuleParser implements SerRuleParser {
             if (from.isEmpty()) {
                 throw new IllegalArgumentException("from requires vocabulary atoms");
             }
+            // Fluent call-chain navigation:
+            //   from chain prev take name
+            //   from chain next argument[0] take value
+            //   from chain next uri argument[0] take value
+            //   from chain prev post take name
+            if ("chain".equals(from.get(0))) {
+                return interpretChainFrom(from, take);
+            }
             String head = from.get(0);
             if ("annotation".equals(head) && from.size() >= 4 && "on".equals(from.get(2))) {
                 JavaElementKind on = javaKind(from.get(3));
@@ -464,6 +473,63 @@ public class AntlrSerRuleParser implements SerRuleParser {
                 return new SourceSpec(kind, null, name, null, null, null, null, take);
             }
             return new SourceSpec(null, head, null, null, name, null, null, null, null, take);
+        }
+
+        private SourceSpec interpretChainFrom(List<String> from, TakeSpec take) {
+            // from[0] == chain
+            int i = 1;
+            if (i >= from.size()) {
+                throw new IllegalArgumentException("from chain requires prev|next");
+            }
+            String dir = from.get(i++);
+            int steps = 1;
+            String callName = null;
+            if (!"prev".equals(dir) && !"next".equals(dir) && !"previous".equals(dir)) {
+                throw new IllegalArgumentException("from chain requires prev or next, got: " + dir);
+            }
+            if ("previous".equals(dir)) {
+                dir = "prev";
+            }
+            if (i < from.size() && from.get(i).matches("\\d+")) {
+                steps = Integer.parseInt(from.get(i++));
+            }
+            // optional method name filter: next uri / prev post
+            if (i < from.size()
+                    && !from.get(i).startsWith("argument[")
+                    && !"call".equals(from.get(i))
+                    && !"argument".equals(from.get(i))) {
+                callName = from.get(i++);
+            }
+            int offset = "prev".equals(dir) ? -Math.max(1, steps) : Math.max(1, steps);
+            // relative take target: argument[n] | call | (default call)
+            JavaElementKind element = JavaElementKind.CALL;
+            Integer argIndex = null;
+            if (i < from.size()) {
+                String rest = from.get(i);
+                if (rest.startsWith("argument[") && rest.endsWith("]")) {
+                    element = JavaElementKind.ARGUMENT;
+                    argIndex = Integer.parseInt(rest.substring("argument[".length(), rest.length() - 1));
+                } else if ("call".equals(rest)) {
+                    element = JavaElementKind.CALL;
+                } else if ("argument".equals(rest) && i + 1 < from.size()) {
+                    // argument 0
+                    element = JavaElementKind.ARGUMENT;
+                    argIndex = Integer.parseInt(from.get(i + 1));
+                }
+            }
+            return new SourceSpec(
+                    element,
+                    element.name().toLowerCase(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    argIndex,
+                    offset,
+                    callName,
+                    take);
         }
 
         private TakeSpec interpretTake(List<String> take) {
@@ -568,7 +634,16 @@ public class AntlrSerRuleParser implements SerRuleParser {
         }
 
         private MethodSelector methodSelectorFromText(String selector) {
-            // Owner.name or Owner.[a,b]
+            if (selector == null || selector.isBlank() || "*".equals(selector)) {
+                return new MethodSelector(null, null, List.of(), null);
+            }
+            // [get,post]
+            if (selector.startsWith("[") && selector.endsWith("]")) {
+                String inner = selector.substring(1, selector.length() - 1);
+                List<String> names = List.of(inner.split(",")).stream().map(String::trim).filter(s -> !s.isEmpty()).toList();
+                return new MethodSelector(null, null, names, null);
+            }
+            // Owner.[a,b]
             if (selector.contains(".[")) {
                 int idx = selector.indexOf(".[");
                 String owner = selector.substring(0, idx);

@@ -1,0 +1,16 @@
+rule "WebClient post uri chain"
+fact http_outbound
+
+find call post
+
+let httpMethod =
+  from call take name
+
+let path =
+  from chain next uri argument[0] take value
+  | normalize slash
+
+build {
+  method: httpMethod
+  path: path
+}
