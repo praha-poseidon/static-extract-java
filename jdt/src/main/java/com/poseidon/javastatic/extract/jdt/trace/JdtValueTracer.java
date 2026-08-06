@@ -1,5 +1,6 @@
 package com.poseidon.javastatic.extract.jdt.trace;
 
+import com.poseidon.javastatic.extract.build.BuildSpec;
 import com.poseidon.javastatic.extract.jdt.build.JdtBuildEvaluator;
 import com.poseidon.javastatic.extract.jdt.source.JdtEvalContext;
 import com.poseidon.javastatic.extract.jdt.source.JdtLetEvaluator;
@@ -10,6 +11,8 @@ import com.poseidon.javastatic.extract.jdt.support.JdtNodeSupport;
 import com.poseidon.javastatic.extract.jdt.support.ValueSupport;
 import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceContext;
 import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceResolver;
+import com.poseidon.javastatic.extract.rule.FindSpec;
+import com.poseidon.javastatic.extract.rule.StaticExtractRule;
 import com.poseidon.javastatic.extract.source.JavaElementKind;
 import com.poseidon.javastatic.extract.trace.ExternalValueEntryRule;
 import com.poseidon.javastatic.extract.trace.TraceTargetKind;
@@ -32,8 +35,10 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class JdtValueTracer {
@@ -53,14 +58,15 @@ public class JdtValueTracer {
     }
 
     public List<String> trace(Expression expression, TypeDeclaration typeDeclaration, MethodDeclaration method) {
-        return traceValue(expression, typeDeclaration, method, new LinkedHashSet<>());
+        return traceValue(expression, typeDeclaration, method, new LinkedHashSet<>(), new HashSet<>());
     }
 
     public List<String> traceField(
             FieldDeclaration field,
             VariableDeclarationFragment fragment,
             TypeDeclaration typeDeclaration) {
-        List<String> values = traceValue(fragment.getInitializer(), typeDeclaration, null, new LinkedHashSet<>());
+        List<String> values =
+                traceValue(fragment.getInitializer(), typeDeclaration, null, new LinkedHashSet<>(), new HashSet<>());
         if (!values.isEmpty()) {
             return values;
         }
@@ -75,7 +81,8 @@ public class JdtValueTracer {
             Expression expression,
             TypeDeclaration typeDeclaration,
             MethodDeclaration method,
-            Set<ASTNode> visited) {
+            Set<ASTNode> visited,
+            Set<String> ruleChainStack) {
         if (expression == null || visited.contains(expression)) {
             return List.of();
         }
@@ -85,15 +92,15 @@ public class JdtValueTracer {
             return List.of(literal.getLiteralValue());
         }
         if (expression instanceof ParenthesizedExpression parenthesized) {
-            return traceValue(parenthesized.getExpression(), typeDeclaration, method, visited);
+            return traceValue(parenthesized.getExpression(), typeDeclaration, method, visited, ruleChainStack);
         }
         if (expression instanceof InfixExpression infix && infix.getOperator() == InfixExpression.Operator.PLUS) {
-            return traceConcat(infix, typeDeclaration, method, visited);
+            return traceConcat(infix, typeDeclaration, method, visited, ruleChainStack);
         }
         if (expression instanceof SimpleName simpleName) {
             Expression resolved = resolveSimpleName(simpleName, typeDeclaration, method);
             if (resolved != null) {
-                return traceValue(resolved, typeDeclaration, method, visited);
+                return traceValue(resolved, typeDeclaration, method, visited, ruleChainStack);
             }
             List<String> external = resolveExternalField(simpleName, typeDeclaration, visited);
             if (!external.isEmpty()) {
@@ -109,6 +116,13 @@ public class JdtValueTracer {
             return List.of(qualifiedName.toString());
         }
         if (expression instanceof MethodInvocation invocation) {
+            // 1) Loaded extract rule whose find call matches this invocation
+            List<String> byRule =
+                    resolveByExtractRule(invocation, typeDeclaration, method, visited, ruleChainStack);
+            if (!byRule.isEmpty()) {
+                return byRule;
+            }
+            // 2) Embedded trace { } / external resolvers
             List<String> external = resolveExternalCall(invocation, typeDeclaration, method, visited);
             if (!external.isEmpty()) {
                 return external;
@@ -117,11 +131,94 @@ public class JdtValueTracer {
         return List.of(expression.toString());
     }
 
+    /**
+     * Same as JS rule-chain: if another loaded rule's {@code find call …} matches this
+     * invocation, evaluate that rule against the call and return a preferred field value.
+     */
+    private List<String> resolveByExtractRule(
+            MethodInvocation invocation,
+            TypeDeclaration typeDeclaration,
+            MethodDeclaration method,
+            Set<ASTNode> visited,
+            Set<String> ruleChainStack) {
+        List<StaticExtractRule> rules = options.extractRules();
+        if (rules == null || rules.isEmpty() || ruleChainStack.size() > 10) {
+            return List.of();
+        }
+        for (StaticExtractRule rule : rules) {
+            if (rule == null || rule.name() == null || ruleChainStack.contains(rule.name())) {
+                continue;
+            }
+            if (!findMatchesCall(rule.find(), invocation)) {
+                continue;
+            }
+            Set<String> nextStack = new HashSet<>(ruleChainStack);
+            nextStack.add(rule.name());
+            try {
+                org.eclipse.jdt.core.dom.CompilationUnit cu =
+                        typeDeclaration != null && typeDeclaration.getRoot() instanceof org.eclipse.jdt.core.dom.CompilationUnit c
+                                ? c
+                                : null;
+                JdtEvalContext context = new JdtEvalContext(cu, typeDeclaration, invocation);
+                Map<String, List<String>> values = letEvaluator.evaluate(rule.lets(), context);
+                List<Map<String, String>> rows = buildEvaluator.evaluate(rule.build(), values);
+                List<String> picked = pickContinuationValue(rows, values);
+                if (!picked.isEmpty()) {
+                    return picked;
+                }
+            } catch (RuntimeException ignored) {
+                // Fall through to other rules / external trace.
+            }
+        }
+        return List.of();
+    }
+
+    private static boolean findMatchesCall(FindSpec find, MethodInvocation invocation) {
+        if (find == null || find.target() != JavaElementKind.CALL || find.method() == null) {
+            return false;
+        }
+        return JdtMethodSupport.matchesMethod(invocation, find.method());
+    }
+
+    private static List<String> pickContinuationValue(
+            List<Map<String, String>> rows, Map<String, List<String>> values) {
+        if (rows != null) {
+            for (Map<String, String> row : rows) {
+                for (String key : List.of("value", "path", "result", "url", "key")) {
+                    String v = row.get(key);
+                    if (v != null && !v.isBlank()) {
+                        return List.of(v);
+                    }
+                }
+                for (String v : row.values()) {
+                    if (v != null && !v.isBlank()) {
+                        return List.of(v);
+                    }
+                }
+            }
+        }
+        if (values != null) {
+            for (String key : List.of("value", "path", "result", "url", "key")) {
+                List<String> list = values.get(key);
+                if (list != null && !list.isEmpty() && list.get(0) != null && !list.get(0).isBlank()) {
+                    return List.of(list.get(0));
+                }
+            }
+            for (List<String> list : values.values()) {
+                if (list != null && !list.isEmpty() && list.get(0) != null && !list.get(0).isBlank()) {
+                    return List.of(list.get(0));
+                }
+            }
+        }
+        return List.of();
+    }
+
     private List<String> traceConcat(
             InfixExpression infix,
             TypeDeclaration typeDeclaration,
             MethodDeclaration method,
-            Set<ASTNode> visited) {
+            Set<ASTNode> visited,
+            Set<String> ruleChainStack) {
         List<Expression> operands = new ArrayList<>();
         operands.add(infix.getLeftOperand());
         operands.add(infix.getRightOperand());
@@ -131,7 +228,7 @@ public class JdtValueTracer {
         List<String> acc = new ArrayList<>();
         acc.add("");
         for (Expression operand : operands) {
-            List<String> values = traceValue(operand, typeDeclaration, method, visited);
+            List<String> values = traceValue(operand, typeDeclaration, method, visited, ruleChainStack);
             List<String> next = new ArrayList<>();
             for (String prefix : acc) {
                 for (String value : values) {
@@ -228,7 +325,8 @@ public class JdtValueTracer {
                         node.getRightHandSide(),
                         typeDeclaration,
                         method,
-                        new LinkedHashSet<>(visited));
+                        new LinkedHashSet<>(visited),
+                        new HashSet<>());
                 if (values.isEmpty()) {
                     values = resolveExternalAssignment(node, typeDeclaration, fieldName);
                 }
@@ -446,7 +544,8 @@ public class JdtValueTracer {
         return new JdtTraceContext() {
             @Override
             public List<String> trace(Expression expression) {
-                return traceValue(expression, typeDeclaration, method, new LinkedHashSet<>(visited));
+                return traceValue(
+                        expression, typeDeclaration, method, new LinkedHashSet<>(visited), new HashSet<>());
             }
 
             @Override

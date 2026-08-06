@@ -23,7 +23,8 @@ public class JavaStaticExtractRunner {
 
     private JavaStaticExtractRunner(List<StaticExtractRule> rules, JdtTraceOptions traceOptions) {
         this.rules = List.copyOf(rules);
-        this.engine = new DefaultJdtStaticExtractEngine(traceOptions);
+        // Pass all loaded rules so value-trace can chain via find call …
+        this.engine = new DefaultJdtStaticExtractEngine(traceOptions, this.rules);
     }
 
     public static Builder builder() {

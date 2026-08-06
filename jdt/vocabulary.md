@@ -147,6 +147,28 @@ build {
 Normalize names include: `slash`, `pathVariable`, `extractPath`, `placeholderLookup`,
 `placeholderDefault`, `kebab`.
 
+## Value-trace chaining (calls)
+
+When `take value` hits a **method invocation**, the engine:
+
+1. Looks for another **loaded** extract rule whose `find call …` matches that call  
+2. If found, evaluates that rule against the call and continues with `value` / `path` / first field  
+3. Else tries this rule's `trace { }` / external resolvers  
+
+```ser
+# post.ser
+find call post
+let path = from argument[0] take value
+build { path: path }
+
+# getApi.ser (must be loaded together)
+find call getApi
+let value = from argument[0] take value
+build { value: value }
+```
+
+For `post(getApi("/api/x"))`, tracing argument[0] continues via `find call getApi`.
+
 ## Value-trace (optional `trace { }` in the same rule file)
 
 ```ser

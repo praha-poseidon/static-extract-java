@@ -23,16 +23,22 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
     private final JdtBuildEvaluator buildEvaluator;
     private final JdtTraceOptions baseTraceOptions;
     private final JdtLetEvaluator sharedLetEvaluator;
+    private final List<StaticExtractRule> extractRules;
 
     public DefaultJdtStaticExtractEngine() {
-        this(JdtTraceOptions.empty());
+        this(JdtTraceOptions.empty(), List.of());
     }
 
     public DefaultJdtStaticExtractEngine(JdtTraceOptions traceOptions) {
+        this(traceOptions, List.of());
+    }
+
+    public DefaultJdtStaticExtractEngine(JdtTraceOptions traceOptions, List<StaticExtractRule> extractRules) {
         this.baseTraceOptions = traceOptions != null ? traceOptions : JdtTraceOptions.empty();
         this.findExecutor = new JdtFindExecutor();
         this.buildEvaluator = new JdtBuildEvaluator();
         this.sharedLetEvaluator = null;
+        this.extractRules = extractRules != null ? List.copyOf(extractRules) : List.of();
     }
 
     public DefaultJdtStaticExtractEngine(
@@ -43,6 +49,7 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
         this.sharedLetEvaluator = letEvaluator;
         this.buildEvaluator = buildEvaluator;
         this.baseTraceOptions = JdtTraceOptions.empty();
+        this.extractRules = List.of();
     }
 
     @Override
@@ -81,7 +88,9 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
         if (sharedLetEvaluator != null) {
             return sharedLetEvaluator;
         }
-        JdtTraceOptions options = baseTraceOptions.withEmbedded(rule.embeddedTrace());
+        JdtTraceOptions options = baseTraceOptions
+                .withEmbedded(rule.embeddedTrace())
+                .withExtractRules(extractRules.isEmpty() ? List.of(rule) : extractRules);
         JdtValueTracer valueTracer = new JdtValueTracer(options);
         return new JdtLetEvaluator(new JdtSourceEvaluator(valueTracer));
     }

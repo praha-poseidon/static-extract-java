@@ -546,6 +546,62 @@ trace {
         assertEquals("/api/users", results.get(0).fields().get("path"));
     }
 
+    
+    @Test
+    void ruleChainContinuesThroughGetApiCall() {
+        AntlrSerRuleParser parser = new AntlrSerRuleParser();
+        StaticExtractRule post =
+                parser.parse(
+                        """
+                        rule "post call"
+                        fact api
+
+                        find call post
+
+                        let path =
+                          from argument[0] take value
+
+                        build {
+                          path: path
+                        }
+                        """);
+        StaticExtractRule getApi =
+                parser.parse(
+                        """
+                        rule "getApi call"
+                        fact helper
+
+                        find call getApi
+
+                        let value =
+                          from argument[0] take value
+
+                        build {
+                          value: value
+                        }
+                        """);
+        CompilationUnit cu =
+                parse(
+                        """
+                        package com.example;
+
+                        class Client {
+                          void call() {
+                            post(getApi("/api/chained"));
+                          }
+                          String getApi(String p) { return p; }
+                          void post(String p) {}
+                        }
+                        """);
+        TypeDeclaration type = typeNamed(cu, "Client");
+        List<StaticExtractRule> rules = List.of(post, getApi);
+        DefaultJdtStaticExtractEngine engine =
+                new DefaultJdtStaticExtractEngine(JdtTraceOptions.empty(), rules);
+        List<StaticExtractResult> results = engine.execute(post, cu, type, "Client.java", null);
+        assertEquals(1, results.size());
+        assertEquals("/api/chained", results.get(0).fields().get("path"));
+    }
+
     private CompilationUnit parse(String source) {
         ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
         parser.setKind(ASTParser.K_COMPILATION_UNIT);

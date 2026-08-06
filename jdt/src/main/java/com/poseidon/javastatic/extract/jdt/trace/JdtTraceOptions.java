@@ -2,6 +2,7 @@ package com.poseidon.javastatic.extract.jdt.trace;
 
 import com.poseidon.javastatic.extract.jdt.trace.external.ExternalValueResolver;
 import com.poseidon.javastatic.extract.jdt.trace.spi.JdtTraceResolver;
+import com.poseidon.javastatic.extract.rule.StaticExtractRule;
 import com.poseidon.javastatic.extract.trace.ExternalValueEntryRule;
 import com.poseidon.javastatic.extract.trace.StaticTraceRuleSet;
 
@@ -11,10 +12,12 @@ import java.util.List;
 public record JdtTraceOptions(
         List<ExternalValueEntryRule> externalEntries,
         ExternalValueResolver externalValueResolver,
-        List<JdtTraceResolver> traceResolvers) {
+        List<JdtTraceResolver> traceResolvers,
+        /** Loaded extract rules for call-site rule chaining (find call …). */
+        List<StaticExtractRule> extractRules) {
 
     public static JdtTraceOptions empty() {
-        return new JdtTraceOptions(List.of(), (namespace, key) -> List.of(), List.of());
+        return new JdtTraceOptions(List.of(), (namespace, key) -> List.of(), List.of(), List.of());
     }
 
     public static JdtTraceOptions of(List<StaticTraceRuleSet> ruleSets, ExternalValueResolver resolver) {
@@ -34,7 +37,8 @@ public record JdtTraceOptions(
         return new JdtTraceOptions(
                 entries,
                 resolver != null ? resolver : (namespace, key) -> List.of(),
-                traceResolvers);
+                traceResolvers,
+                List.of());
     }
 
     /** Merge entries from a rule-file embedded {@code trace { }} block. */
@@ -44,12 +48,21 @@ public record JdtTraceOptions(
         }
         List<ExternalValueEntryRule> merged = new ArrayList<>(externalEntries);
         merged.addAll(embedded.externalEntries());
-        return new JdtTraceOptions(merged, externalValueResolver, traceResolvers);
+        return new JdtTraceOptions(merged, externalValueResolver, traceResolvers, extractRules);
+    }
+
+    public JdtTraceOptions withExtractRules(List<StaticExtractRule> rules) {
+        return new JdtTraceOptions(
+                externalEntries,
+                externalValueResolver,
+                traceResolvers,
+                rules != null ? List.copyOf(rules) : List.of());
     }
 
     public JdtTraceOptions {
         externalEntries = externalEntries != null ? List.copyOf(externalEntries) : List.of();
         externalValueResolver = externalValueResolver != null ? externalValueResolver : (namespace, key) -> List.of();
         traceResolvers = traceResolvers != null ? List.copyOf(traceResolvers) : List.of();
+        extractRules = extractRules != null ? List.copyOf(extractRules) : List.of();
     }
 }
