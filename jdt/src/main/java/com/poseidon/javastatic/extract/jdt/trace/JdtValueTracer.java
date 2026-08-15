@@ -22,9 +22,12 @@ import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.ParenthesizedExpression;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
@@ -102,6 +105,10 @@ public class JdtValueTracer {
             if (resolved != null) {
                 return traceValue(resolved, typeDeclaration, method, visited, ruleChainStack);
             }
+            List<String> constant = resolveCompileTimeConstant(simpleName);
+            if (!constant.isEmpty()) {
+                return constant;
+            }
             List<String> external = resolveExternalField(simpleName, typeDeclaration, visited);
             if (!external.isEmpty()) {
                 return external;
@@ -113,7 +120,22 @@ public class JdtValueTracer {
             return List.of("{" + simpleName.getIdentifier() + "}");
         }
         if (expression instanceof QualifiedName qualifiedName) {
+            List<String> constant = resolveCompileTimeConstant(qualifiedName);
+            if (!constant.isEmpty()) {
+                return constant;
+            }
+            // Prefer simple name constant on the right (Constants.TOPIC → TOPIC binding)
+            List<String> right = resolveCompileTimeConstant(qualifiedName.getName());
+            if (!right.isEmpty()) {
+                return right;
+            }
             return List.of(qualifiedName.toString());
+        }
+        if (expression instanceof FieldAccess fieldAccess) {
+            List<String> constant = resolveCompileTimeConstant(fieldAccess.getName());
+            if (!constant.isEmpty()) {
+                return constant;
+            }
         }
         if (expression instanceof MethodInvocation invocation) {
             // 1) Loaded extract rule whose find call matches this invocation
@@ -251,15 +273,50 @@ public class JdtValueTracer {
                 return finder.initializer;
             }
         }
-        for (FieldDeclaration field : typeDeclaration.getFields()) {
-            for (Object fragmentObject : field.fragments()) {
-                VariableDeclarationFragment fragment = (VariableDeclarationFragment) fragmentObject;
-                if (name.getIdentifier().equals(fragment.getName().getIdentifier())) {
-                    return fragment.getInitializer();
+        if (typeDeclaration != null) {
+            for (FieldDeclaration field : typeDeclaration.getFields()) {
+                for (Object fragmentObject : field.fragments()) {
+                    VariableDeclarationFragment fragment = (VariableDeclarationFragment) fragmentObject;
+                    if (name.getIdentifier().equals(fragment.getName().getIdentifier())) {
+                        return fragment.getInitializer();
+                    }
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve {@code static final} / compile-time constants via JDT bindings
+     * (same CU or dependency jars when bindings resolve).
+     */
+    private List<String> resolveCompileTimeConstant(Name name) {
+        if (name == null) {
+            return List.of();
+        }
+        IBinding binding = name.resolveBinding();
+        if (!(binding instanceof IVariableBinding variable)) {
+            return List.of();
+        }
+        return constantValueOf(variable);
+    }
+
+    private static List<String> constantValueOf(IVariableBinding variable) {
+        if (variable == null) {
+            return List.of();
+        }
+        // Prefer JDT compile-time constant (static final String/int/… with constant expression)
+        Object constant = variable.getConstantValue();
+        if (constant != null) {
+            if (constant instanceof String s) {
+                return List.of(s);
+            }
+            if (constant instanceof Character c) {
+                return List.of(String.valueOf(c));
+            }
+            return List.of(String.valueOf(constant));
+        }
+        return List.of();
     }
 
     private List<String> resolveExternalField(
