@@ -76,13 +76,8 @@ when annotation @Missing on method
     void runCommandWritesJsonLinesAndReadsExternalValues() throws Exception {
         Fixture fixture = fixture();
         Path externalValues = tempDir.resolve("external-values.json");
-        Files.writeString(externalValues, """
-                {
-                  "config": {
-                    "unused": ["value"]
-                  }
-                }
-                """);
+        // flat identity dict (empty = no overrides)
+        Files.writeString(externalValues, "{}\n");
         Path outputFile = tempDir.resolve("out/results.jsonl");
 
         CliOutput output = execute(
@@ -108,7 +103,7 @@ when annotation @Missing on method
                 "--project", fixture.project().toString(),
                 "--source", fixture.javaFile().toString(),
                 "--rule-text", ser,
-                "--external-values", "{\"config\":{\"unused\":[\"value\"]}}");
+                "--external-values", "{}");
 
         assertEquals(0, output.exitCode());
         assertTrue(output.stdout().contains("\"resultCount\" : 1"));
