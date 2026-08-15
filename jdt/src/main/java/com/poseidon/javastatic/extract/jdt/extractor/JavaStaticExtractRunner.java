@@ -21,10 +21,12 @@ public class JavaStaticExtractRunner {
     private final List<StaticExtractRule> rules;
     private final DefaultJdtStaticExtractEngine engine;
 
-    private JavaStaticExtractRunner(List<StaticExtractRule> rules, JdtTraceOptions traceOptions) {
+    private JavaStaticExtractRunner(
+            List<StaticExtractRule> rules, JdtTraceOptions traceOptions, String projectName) {
         this.rules = List.copyOf(rules);
         // Pass all loaded rules so value-trace can chain via find call …
-        this.engine = new DefaultJdtStaticExtractEngine(traceOptions, this.rules);
+        // projectName optional metadata; identity keys are fqcn.method() (no project prefix)
+        this.engine = new DefaultJdtStaticExtractEngine(traceOptions, this.rules, projectName);
     }
 
     public static Builder builder() {
@@ -77,6 +79,8 @@ public class JavaStaticExtractRunner {
         private ExternalValueResolver externalValueResolver = new MapExternalValueResolver(Map.of());
         /** Optional classpath-packaged rules (none shipped; off by default). */
         private boolean loadClasspathRules = false;
+        /** Optional project name (metadata; identity dict keys do not include it). */
+        private String projectName;
 
         private Builder() {
             this(new SerRuleLoader());
@@ -148,6 +152,11 @@ public class JavaStaticExtractRunner {
             return externalValueResolver(new MapExternalValueResolver(values));
         }
 
+        public Builder projectName(String projectName) {
+            this.projectName = projectName == null || projectName.isBlank() ? null : projectName.trim();
+            return this;
+        }
+
         public JavaStaticExtractRunner build() {
             List<StaticExtractRule> effectiveRules = new ArrayList<>();
             if (loadClasspathRules) {
@@ -159,7 +168,7 @@ public class JavaStaticExtractRunner {
             // only carry external dictionary + SPI resolvers.
             JdtTraceOptions traceOptions =
                     JdtTraceOptions.of(List.of(), externalValueResolver, traceResolvers);
-            return new JavaStaticExtractRunner(effectiveRules, traceOptions);
+            return new JavaStaticExtractRunner(effectiveRules, traceOptions, projectName);
         }
     }
 }
