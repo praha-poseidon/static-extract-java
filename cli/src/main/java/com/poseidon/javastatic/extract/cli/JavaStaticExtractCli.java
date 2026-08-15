@@ -146,7 +146,7 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
         List<String> ruleTexts = new ArrayList<>();
 
         @Option(names = "--external-values",
-                description = "External-values dictionary as a JSON file path, or inline JSON object string.")
+                description = "Identity dict: flat JSON {\"fqcn.method()\": \"value\"} as file path or inline.")
         String externalValuesInput;
 
         List<String> ruleSources() {
@@ -157,20 +157,18 @@ public final class JavaStaticExtractCli implements Callable<Integer> {
             if (externalValuesInput == null || externalValuesInput.isBlank()) {
                 return Map.of();
             }
-            String raw = externalValuesInput.trim();
             try {
-                if (!raw.startsWith("{") && !raw.startsWith("[")) {
-                    Path path = Path.of(raw);
-                    if (Files.isRegularFile(path)) {
-                        raw = Files.readString(path, StandardCharsets.UTF_8);
-                    }
-                }
-                return objectMapper().readValue(
-                        raw,
-                        new TypeReference<Map<String, Map<String, List<String>>>>() {});
-            } catch (IOException e) {
+                var flat = com.poseidon.javastatic.extract.jdt.trace.external.MapExternalValueResolver
+                        .loadJson(externalValuesInput)
+                        .identityMap();
+                return com.poseidon.javastatic.extract.jdt.trace.external.MapExternalValueResolver.toWire(flat);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
                 throw new IllegalArgumentException(
-                        "Failed to parse external values (JSON file path or inline JSON): " + externalValuesInput, e);
+                        "Failed to parse identity dict (flat {\"fqcn.method()\": \"value\"}): "
+                                + externalValuesInput,
+                        e);
             }
         }
     }
