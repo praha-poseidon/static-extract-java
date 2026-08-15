@@ -138,7 +138,8 @@ public class JdtBuildEvaluator {
         if (mapping == null || mapping.isEmpty()) {
             return value;
         }
-        return mapping.getOrDefault(value, value);
+        // Unmapped → empty (no passthrough of raw tokens like method names)
+        return mapping.getOrDefault(value, "");
     }
 
     private String normalizeSlash(String value) {
