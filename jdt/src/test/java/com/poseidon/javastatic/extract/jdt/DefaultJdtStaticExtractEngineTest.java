@@ -158,6 +158,46 @@ class DefaultJdtStaticExtractEngineTest {
     }
 
     @Test
+    void tracesQualifiedStaticFinalConstantsIntoPath() {
+        StaticExtractRule rule =
+                new AntlrSerRuleParser()
+                        .parse(
+                                """
+                                rule "Const path call"
+                                endpoint HTTP outbound
+                                find call send
+                                let path =
+                                  from argument[0] take value
+                                build {
+                                  path: path
+                                  httpMethod: "POST"
+                                }
+                                """);
+        CompilationUnit cu =
+                parse(
+                        """
+                        package com.example;
+
+                        class Topics {
+                            public static final String COOPER = "cooper_domain_event";
+                        }
+                        class Producer {
+                            void send(String topic) {}
+                            void publish() {
+                                send(Topics.COOPER);
+                            }
+                        }
+                        """);
+        TypeDeclaration type = typeNamed(cu, "Producer");
+
+        List<StaticExtractResult> results =
+                new DefaultJdtStaticExtractEngine().execute(rule, cu, type, "Producer.java", null);
+
+        assertEquals(1, results.size());
+        assertEquals("cooper_domain_event", results.get(0).fields().get("path"));
+    }
+
+    @Test
     void supportsClassFieldParameterReturnLiteralAndNewSources() {
         StaticExtractRule rule =
                 new AntlrSerRuleParser()
