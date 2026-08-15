@@ -11,6 +11,7 @@ import com.poseidon.javastatic.extract.language.antlr.SerParser;
 import com.poseidon.javastatic.extract.rule.EndpointSpec;
 import com.poseidon.javastatic.extract.rule.FactSpec;
 import com.poseidon.javastatic.extract.rule.FindSpec;
+import com.poseidon.javastatic.extract.rule.SerIdentityDict;
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
 import com.poseidon.javastatic.extract.source.AnnotationSelector;
 import com.poseidon.javastatic.extract.source.JavaElementKind;
@@ -45,8 +46,13 @@ public class AntlrSerRuleParser implements SerRuleParser {
 
     @Override
     public StaticExtractRule parse(String source) {
-        SerParser parser = parser(source);
-        return new RuleBuilder().visitRuleFile(parser.ruleFile());
+        SerIdentityDict.Split split = SerIdentityDict.split(source);
+        SerParser parser = parser(split.serBody());
+        StaticExtractRule rule = new RuleBuilder().visitRuleFile(parser.ruleFile());
+        if (split.hasIdentity()) {
+            return rule.withIdentityDict(split.identity());
+        }
+        return rule;
     }
 
     private SerParser parser(String source) {
