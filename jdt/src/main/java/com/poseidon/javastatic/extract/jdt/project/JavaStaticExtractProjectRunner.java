@@ -333,6 +333,10 @@ public final class JavaStaticExtractProjectRunner implements StaticExtractExtrac
             if (effectiveSources.isEmpty()) {
                 throw new IllegalStateException("Pass project(...) or at least one source(...).");
             }
+            // Dictionary identity keys: {projectDirName}.{Class}.{method}()
+            if (normalizedProject != null && normalizedProject.getFileName() != null) {
+                runnerBuilder.projectName(normalizedProject.getFileName().toString());
+            }
             return new JavaStaticExtractProjectRunner(
                     normalizedProject,
                     effectiveSources,
