@@ -114,7 +114,18 @@ class JdtSupportAndBuildEvaluatorTest {
         assertEquals("post", row.get("lower"));
         assertEquals("/api/users", row.get("concat"));
         assertEquals(List.of("a", "b"), ValueSupport.dedupe(List.of("a", "a", "b")));
+        // empty map block → unchanged
         assertEquals(List.of("x"), ValueSupport.applyMapping(List.of("x"), Map.of()));
+        // hit → mapped value
+        assertEquals(List.of("t_tenant"), ValueSupport.applyMapping(List.of("addTenant"), Map.of("addTenant", "t_tenant")));
+        // miss → empty (no passthrough of method name)
+        assertEquals(List.of(), ValueSupport.applyMapping(List.of("queryByExternalTenantId"), Map.of("addTenant", "t_tenant")));
+        // mixed: only hits kept
+        assertEquals(
+                List.of("t_tenant"),
+                ValueSupport.applyMapping(
+                        List.of("addTenant", "queryByExternalTenantId"),
+                        Map.of("addTenant", "t_tenant")));
     }
 
     @Test
