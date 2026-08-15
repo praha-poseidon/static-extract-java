@@ -33,10 +33,31 @@ public class JdtFindExecutor {
             fields.removeIf(field -> !matchesFieldName(find, (org.eclipse.jdt.core.dom.FieldDeclaration) field));
             return fields;
         }
+        // find method (declarations on the type, including interface methods with no body)
+        if (find.target() == JavaElementKind.METHOD && find.method() == null && find.annotation() == null) {
+            return findMethodDeclarations(find, typeDeclaration);
+        }
+        // find call Owner.method / find method with method selector → invocations in bodies
         if (find.method() != null) {
             return findByMethodInvocation(find, typeDeclaration);
         }
         return List.of();
+    }
+
+    /**
+     * All method declarations on the type (class or interface). Optional {@code find name} filters simple name.
+     */
+    private List<ASTNode> findMethodDeclarations(FindSpec find, TypeDeclaration typeDeclaration) {
+        List<ASTNode> out = new ArrayList<>();
+        for (MethodDeclaration method : typeDeclaration.getMethods()) {
+            if (find.name() != null
+                    && !find.name().isBlank()
+                    && !find.name().equals(method.getName().getIdentifier())) {
+                continue;
+            }
+            out.add(method);
+        }
+        return out;
     }
 
     /**
