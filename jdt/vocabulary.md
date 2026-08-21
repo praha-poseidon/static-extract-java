@@ -94,6 +94,7 @@ from annotation @AnnotationName on method take attr(value)
 from annotation @AnnotationName on field take attr(value)
 from class take name
 from method take name
+from method take value
 from method take signature
 from field take name
 from field take value
@@ -102,6 +103,12 @@ from call take name
 from call take owner
 from literal "value" take value
 ```
+
+`from method take value` reads the embedded identity `dict` by the current
+method's canonical `package.Owner.method()` key. For a `find method`
+declaration, contiguous `key`, `key.1`, `key.2`, … entries fan out into
+separate facts in that order. A miss continues to the next source or fallback.
+`build { other: ... }` is emitted unchanged for endpoint metadata.
 
 ### Fluent call chain (`from chain …`)
 

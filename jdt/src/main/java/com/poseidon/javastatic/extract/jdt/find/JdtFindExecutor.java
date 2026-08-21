@@ -50,14 +50,54 @@ public class JdtFindExecutor {
     private List<ASTNode> findMethodDeclarations(FindSpec find, TypeDeclaration typeDeclaration) {
         List<ASTNode> out = new ArrayList<>();
         for (MethodDeclaration method : typeDeclaration.getMethods()) {
-            if (find.name() != null
-                    && !find.name().isBlank()
-                    && !find.name().equals(method.getName().getIdentifier())) {
+            if (!matchesMethodDeclarationName(find.name(), typeDeclaration, method)) {
                 continue;
             }
             out.add(method);
         }
         return out;
+    }
+
+    private boolean matchesMethodDeclarationName(
+            String selector, TypeDeclaration typeDeclaration, MethodDeclaration method) {
+        if (selector == null || selector.isBlank() || "*".equals(selector.trim())) {
+            return true;
+        }
+        String simpleType = typeDeclaration.getName().getIdentifier();
+        String qualifiedType = typeDeclaration.resolveBinding() != null
+                ? typeDeclaration.resolveBinding().getQualifiedName()
+                : simpleType;
+        String raw = selector.replace(" ", "").trim();
+        List<String> specs = new ArrayList<>();
+        int ownerList = raw.indexOf(".[");
+        if (ownerList > 0 && raw.endsWith("]")) {
+            String owner = raw.substring(0, ownerList);
+            for (String name : raw.substring(ownerList + 2, raw.length() - 1).split(",")) {
+                specs.add(owner + "." + name);
+            }
+        } else {
+            String body = raw.startsWith("[") && raw.endsWith("]")
+                    ? raw.substring(1, raw.length() - 1)
+                    : raw;
+            Collections.addAll(specs, body.split(","));
+        }
+        for (String spec : specs) {
+            int dot = spec.lastIndexOf('.');
+            String expectedName = dot >= 0 ? spec.substring(dot + 1) : spec;
+            String expectedOwner = dot >= 0 ? spec.substring(0, dot) : "";
+            if (!"*".equals(expectedName)
+                    && !expectedName.equals(method.getName().getIdentifier())) {
+                continue;
+            }
+            if (expectedOwner.isBlank()
+                    || "*".equals(expectedOwner)
+                    || expectedOwner.equals(simpleType)
+                    || expectedOwner.equals(qualifiedType)
+                    || qualifiedType.endsWith("." + expectedOwner)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

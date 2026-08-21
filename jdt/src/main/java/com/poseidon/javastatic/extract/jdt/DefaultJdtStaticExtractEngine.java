@@ -83,7 +83,11 @@ public class DefaultJdtStaticExtractEngine implements JdtStaticExtractEngine {
 
         List<StaticExtractResult> results = new ArrayList<>();
         for (ASTNode anchor : findExecutor.find(rule.find(), typeDeclaration)) {
-            JdtEvalContext context = new JdtEvalContext(compilationUnit, typeDeclaration, anchor);
+            JdtEvalContext context = new JdtEvalContext(
+                    compilationUnit,
+                    typeDeclaration,
+                    anchor,
+                    rule.identityDict());
             Map<String, List<String>> values = letEvaluator.evaluate(rule.lets(), context);
             for (Map<String, String> fields : buildEvaluator.evaluate(rule.build(), values)) {
                 // Identity dictionary (endpointPathOverrides) is static-extract's job — same layer as take/externalValues.

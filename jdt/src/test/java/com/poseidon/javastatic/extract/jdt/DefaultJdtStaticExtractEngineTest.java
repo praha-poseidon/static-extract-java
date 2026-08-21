@@ -20,6 +20,82 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DefaultJdtStaticExtractEngineTest {
 
     @Test
+    void methodTakeValueReadsEmbeddedIdentityDictionaryForInterfaceMethod() {
+        StaticExtractRule rule = new AntlrSerRuleParser().parse(
+                """
+                rule "Configured handler"
+                endpoint HTTP inbound
+                find method Handler.run
+
+                let path =
+                  from method take value
+                let handler =
+                  from method take name
+
+                build {
+                  httpMethod: "GET"
+                  path: path
+                  handler: handler
+                  other: "manual-binding"
+                }
+                dict {
+                  com.example.Handler.run() = /configured/run
+                  com.example.Handler.run().1 = /configured/run-alias
+                  com.example.Handler.run().2 = /configured/run-v2
+                }
+                """);
+        CompilationUnit cu = parse(
+                """
+                package com.example;
+                interface Handler {
+                    void run();
+                    void ignored();
+                }
+                """);
+        TypeDeclaration type = typeNamed(cu, "Handler");
+
+        List<StaticExtractResult> results =
+                new DefaultJdtStaticExtractEngine().execute(rule, cu, type, "Handler.java", null);
+
+        assertEquals(3, results.size());
+        assertEquals(
+                List.of("/configured/run", "/configured/run-alias", "/configured/run-v2"),
+                results.stream().map(result -> result.fields().get("path")).toList());
+        for (StaticExtractResult result : results) {
+            assertEquals("config", result.fields().get("parseLevel"));
+            assertEquals("run", result.fields().get("handler"));
+            assertEquals("manual-binding", result.fields().get("other"));
+        }
+    }
+
+    @Test
+    void methodTakeValueMissContinuesToNextSource() {
+        StaticExtractRule rule = new AntlrSerRuleParser().parse(
+                """
+                rule "Configured handler fallback"
+                endpoint HTTP inbound
+                find method Handler.run
+                let path =
+                  from method take value
+                  from literal "/fallback" take value
+                build {
+                  path: path
+                }
+                dict {
+                  com.example.Handler.other() = /other
+                }
+                """);
+        CompilationUnit cu = parse("package com.example; interface Handler { void run(); }");
+
+        List<StaticExtractResult> results = new DefaultJdtStaticExtractEngine()
+                .execute(rule, cu, typeNamed(cu, "Handler"), "Handler.java", null);
+
+        assertEquals(1, results.size());
+        assertEquals("/fallback", results.get(0).fields().get("path"));
+        assertEquals(null, results.get(0).fields().get("parseLevel"));
+    }
+
+    @Test
     void extractsSpringMvcInboundEndpointFields() {
         StaticExtractRule rule = loadRule("Spring MVC HTTP Inbound");
         CompilationUnit cu =

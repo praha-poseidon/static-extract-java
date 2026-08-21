@@ -1,6 +1,7 @@
 package com.poseidon.javastatic.extract.jdt.source;
 
 import com.poseidon.javastatic.extract.jdt.support.JdtAnnotationSupport;
+import com.poseidon.javastatic.extract.jdt.external.EndpointIdentityOverride;
 import com.poseidon.javastatic.extract.jdt.support.JdtMethodSupport;
 import com.poseidon.javastatic.extract.jdt.support.JdtNodeSupport;
 import com.poseidon.javastatic.extract.jdt.support.ValueSupport;
@@ -59,7 +60,7 @@ public class JdtSourceEvaluator {
             return List.of();
         }
         if (source.element() == JavaElementKind.METHOD) {
-            return methodValues(source, context.anchorNode());
+            return methodValues(source, context);
         }
         if (source.element() == JavaElementKind.CLASS) {
             return classValues(source, context.typeDeclaration());
@@ -238,7 +239,8 @@ public class JdtSourceEvaluator {
         };
     }
 
-    private List<String> methodValues(SourceSpec source, ASTNode anchor) {
+    private List<String> methodValues(SourceSpec source, JdtEvalContext context) {
+        ASTNode anchor = context.anchorNode();
         if (source.take().kind() == TakeKind.NAME) {
             if (anchor instanceof MethodInvocation invocation) {
                 return List.of(invocation.getName().getIdentifier());
@@ -255,6 +257,33 @@ public class JdtSourceEvaluator {
         }
         if (source.take().kind() == TakeKind.TYPE && anchor instanceof MethodDeclaration declaration) {
             return List.of(declaration.getReturnType2() != null ? declaration.getReturnType2().toString() : "void");
+        }
+        if (source.take().kind() == TakeKind.VALUE) {
+            MethodDeclaration declaration = EndpointIdentityOverride.enclosingMethod(anchor);
+            if (declaration == null || context.identityDict().isEmpty()) {
+                return List.of();
+            }
+            String baseKey = EndpointIdentityOverride.methodKey(
+                    EndpointIdentityOverride.fqcnOf(context.typeDeclaration()),
+                    declaration.getName().getIdentifier(),
+                    0);
+            String value = context.identityDict().get(baseKey);
+            if (value == null || value.isBlank()) {
+                return List.of();
+            }
+            if (!(anchor instanceof MethodDeclaration)) {
+                return List.of(value.trim());
+            }
+            List<String> values = new ArrayList<>();
+            values.add(value.trim());
+            for (int index = 1; ; index++) {
+                String indexed = context.identityDict().get(baseKey + "." + index);
+                if (indexed == null || indexed.isBlank()) {
+                    break;
+                }
+                values.add(indexed.trim());
+            }
+            return List.copyOf(values);
         }
         return List.of();
     }
