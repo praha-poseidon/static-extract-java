@@ -12,17 +12,17 @@ reuse SER rules, run them, and iterate.
 ## Workflow
 
 1. Detect the target extractor from the project or user request:
-   - Java/JDT: use `static-extract-java`
-   - TypeScript, JavaScript, JSX, TSX, or React: use `static-extract-ts`
+   - Java/JDT: use `extract-java`
+   - TypeScript, JavaScript, JSX, TSX, or React: use `extract-js`
 2. Confirm the matching CLI is available:
    ```bash
-   static-extract-java --help
-   static-extract-ts --help
+   extract-java --help
+   extract-js --help
    ```
 3. Initialize the workspace in the target project:
    ```bash
-   static-extract-java init --project /path/to/project
-   static-extract-ts init --project /path/to/project
+   extract-java init --project /path/to/project
+   extract-js init --project /path/to/project
    ```
 4. Inspect source files and identify concrete code shapes to extract:
    annotations, method calls, fields, constants, return values, string paths,
@@ -52,20 +52,20 @@ reuse SER rules, run them, and iterate.
    ```
 9. Validate one rule on one or more representative files:
    ```bash
-   static-extract-java try --project /path/to/project --file /path/to/File.java --rule /path/to/project/.ser/generated/name.ser
-   static-extract-ts try --project /path/to/project --source /path/to/Component.tsx --rule /path/to/project/.ser/generated/name.ser
+   extract-java try --project /path/to/project --file /path/to/File.java --rule /path/to/project/.ser/generated/name.ser
+   extract-js try --project /path/to/project --source /path/to/Component.tsx --rule /path/to/project/.ser/generated/name.ser
    ```
 10. If no result is emitted, run:
    ```bash
-   static-extract-java diagnose --project /path/to/project --file /path/to/File.java --rule /path/to/project/.ser/generated/name.ser
-   static-extract-ts diagnose --project /path/to/project --source /path/to/Component.tsx --rule /path/to/project/.ser/generated/name.ser
+   extract-java diagnose --project /path/to/project --file /path/to/File.java --rule /path/to/project/.ser/generated/name.ser
+   extract-js diagnose --project /path/to/project --source /path/to/Component.tsx --rule /path/to/project/.ser/generated/name.ser
    ```
    Use returned facts to adjust the rule.
 11. Repeat `try` until representative files emit expected fields.
 12. Run extraction:
    ```bash
-   static-extract-java run --project /path/to/project --rule /path/to/project/.ser/generated/name.ser --out /path/to/project/.ser/result/extract.jsonl
-   static-extract-ts run --project /path/to/project --source /path/to/project/src --rule /path/to/project/.ser/generated/name.ser --out /path/to/project/.ser/result/extract.jsonl
+   extract-java run --project /path/to/project --rule /path/to/project/.ser/generated/name.ser --out /path/to/project/.ser/result/extract.jsonl
+   extract-js run --project /path/to/project --source /path/to/project/src --rule /path/to/project/.ser/generated/name.ser --out /path/to/project/.ser/result/extract.jsonl
    ```
 
 One `.ser` file may include an optional `trace { … }` block after `build` for value-trace patches. There are no separate trace files or `--trace-rule` flags.

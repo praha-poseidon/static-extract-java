@@ -130,8 +130,8 @@ install_skill() {
 
 if [[ "$INSTALL_CLI" -eq 1 ]]; then
   check_prerequisites
-  install_command static-extract-java
-  install_command static-extract-ts
+  install_command extract-java
+  install_command extract-js
 fi
 
 if [[ "$INSTALL_SKILLS" -eq 1 ]]; then
@@ -146,8 +146,8 @@ cat <<EOF
 Done.
 
 Try:
-  static-extract-java --help
-  static-extract-ts --help
+  extract-java --help
+  extract-js --help
 
 If commands are not found, add this to your shell profile:
   export PATH="$BIN_DIR:\$PATH"

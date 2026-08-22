@@ -100,6 +100,6 @@ No separate `trace "name"` files.
 ## CLI
 
 ```bash
-static-extract-java try --project DIR --source FILE --rule rule.ser
-static-extract-ts try --project DIR --source FILE --rule rule.ser
+extract-java try --project DIR --source FILE --rule rule.ser
+extract-js try --project DIR --source FILE --rule rule.ser
 ```

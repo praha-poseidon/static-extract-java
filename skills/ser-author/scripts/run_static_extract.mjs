@@ -186,9 +186,9 @@ function javaCommand(options) {
     };
   }
   const packagedCandidates = [
-    resolve(workspaceRoot, "static-extract-java/cli/target/appassembler/bin/static-extract-java"),
-    resolve(workspaceRoot, "static-extract/java/cli/target/appassembler/bin/static-extract-java"),
-    resolve(workspaceRoot, "static-extract-java/cli/target/appassembler/bin/static-extract-java")
+    resolve(workspaceRoot, "static-extract-java/cli/target/appassembler/bin/extract-java"),
+    resolve(workspaceRoot, "static-extract/java/cli/target/appassembler/bin/extract-java"),
+    resolve(workspaceRoot, "static-extract-java/cli/target/appassembler/bin/extract-java")
   ];
   for (const packaged of packagedCandidates) {
     if (existsSync(packaged)) {
@@ -199,14 +199,14 @@ function javaCommand(options) {
       };
     }
   }
-  if (commandExists("static-extract-java")) {
+  if (commandExists("extract-java")) {
     return {
       kind: "direct",
-      command: "static-extract-java",
+      command: "extract-java",
       prefixArgs: []
     };
   }
-  throw new Error("Unable to find static-extract-java. Install the release package, run Maven package, pass --cli-java, or set STATIC_EXTRACT_JAVA_CLASSPATH.");
+  throw new Error("Unable to find extract-java. Install the release package, run Maven package, pass --cli-java, or set STATIC_EXTRACT_JAVA_CLASSPATH.");
 }
 
 function resolveJsCli() {
@@ -214,16 +214,16 @@ function resolveJsCli() {
     return resolve(process.env.STATIC_EXTRACT_JS_CLI);
   }
   const candidates = [
-    resolve(workspaceRoot, "static-extract-js/cli/static-extract-ts.mjs"),
-    resolve(workspaceRoot, "static-extract/ts/cli/static-extract-ts.mjs"),
-    resolve(workspaceRoot, "static-extract-js/cli/static-extract-ts.mjs")
+    resolve(workspaceRoot, "static-extract-js/cli/extract-js.mjs"),
+    resolve(workspaceRoot, "static-extract/ts/cli/extract-js.mjs"),
+    resolve(workspaceRoot, "static-extract-js/cli/extract-js.mjs")
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
       return candidate;
     }
   }
-  throw new Error("Unable to find static-extract-js CLI. Set STATIC_EXTRACT_JS_CLI or place static-extract-js as a sibling of static-extract-spec.");
+  throw new Error("Unable to find extract-js. Set STATIC_EXTRACT_JS_CLI or place static-extract-js as a sibling of static-extract-spec.");
 }
 
 function commandExists(command) {

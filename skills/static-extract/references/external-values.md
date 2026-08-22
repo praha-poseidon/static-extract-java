@@ -41,7 +41,7 @@ Do not query databases, cloud services, or secret managers unless the user expli
 2. Build `.ser/generated/external-values.json`.
 3. Pass it to CLI:
    ```bash
-   static-extract-java run \
+   extract-java run \
      --project /my-project \
      --rule /my-project/.ser/generated/http.ser \
      --external-values /my-project/.ser/generated/external-values.json \

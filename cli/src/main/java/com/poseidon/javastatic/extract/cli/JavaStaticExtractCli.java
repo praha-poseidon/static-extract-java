@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @Command(
-        name = "static-extract-java",
+        name = "extract-java",
         mixinStandardHelpOptions = true,
         version = "0.0.1",
         description = "Run Static Extract Java extractor SER rules.",

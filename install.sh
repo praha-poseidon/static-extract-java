@@ -15,8 +15,8 @@ Usage: ./install.sh [options]
 Options:
   --bin-dir DIR       Install CLI commands into DIR.
   --no-cli            Do not build or install CLI commands.
-  --no-java-cli       Do not build or install static-extract-java.
-  --no-ts-cli         Do not install static-extract-ts.
+  --no-java-cli       Do not build or install extract-java.
+  --no-ts-cli         Do not install extract-js.
   --no-skills         Do not install Codex/Claude skills.
   -h, --help          Show this help.
 
@@ -133,46 +133,46 @@ install_java_cli() {
   echo "Building static-extract Java extractor CLI..."
   (cd "$ROOT_DIR" && "$MVN_CMD" -pl java/cli -am package)
 
-  local source_bin="$ROOT_DIR/java/cli/target/appassembler/bin/static-extract-java"
+  local source_bin="$ROOT_DIR/java/cli/target/appassembler/bin/extract-java"
   if [[ ! -x "$source_bin" ]]; then
     echo "CLI script was not generated: $source_bin" >&2
     exit 1
   fi
 
   mkdir -p "$BIN_DIR"
-  if ! ln -sfn "$source_bin" "$BIN_DIR/static-extract-java" 2>/dev/null; then
+  if ! ln -sfn "$source_bin" "$BIN_DIR/extract-java" 2>/dev/null; then
     echo "Symlink failed. Copying the command script instead..."
-    cp "$source_bin" "$BIN_DIR/static-extract-java"
-    chmod +x "$BIN_DIR/static-extract-java"
+    cp "$source_bin" "$BIN_DIR/extract-java"
+    chmod +x "$BIN_DIR/extract-java"
   fi
-  echo "Installed command: $BIN_DIR/static-extract-java"
+  echo "Installed command: $BIN_DIR/extract-java"
 }
 
 install_ts_cli() {
   check_ts_prerequisites
 
-  local source_bin="$ROOT_DIR/ts/cli/static-extract-ts.mjs"
+  local source_bin="$ROOT_DIR/ts/cli/extract-js.mjs"
   if [[ ! -f "$source_bin" ]]; then
     die "TS CLI script was not found: $source_bin"
   fi
   if [[ ! -d "$ROOT_DIR/ts/node_modules/ts-morph" || ! -d "$ROOT_DIR/ts/node_modules/antlr4ng" ]]; then
     command_exists npm || die "npm was not found. Source install needs npm to install TS extractor dependencies."
-    echo "Installing static-extract-ts dependencies..."
+    echo "Installing extract-js dependencies..."
     (cd "$ROOT_DIR/ts" && npm install)
   fi
   if [[ ! -f "$ROOT_DIR/ts/dist/extractor/antlr-ser-parser.js" ]]; then
-    echo "Building static-extract-ts generated SER parser..."
+    echo "Building extract-js generated SER parser..."
     (cd "$ROOT_DIR/ts" && npm run build)
   fi
 
   chmod +x "$source_bin"
   mkdir -p "$BIN_DIR"
-  if ! ln -sfn "$source_bin" "$BIN_DIR/static-extract-ts" 2>/dev/null; then
+  if ! ln -sfn "$source_bin" "$BIN_DIR/extract-js" 2>/dev/null; then
     echo "Symlink failed. Copying the command script instead..."
-    cp "$source_bin" "$BIN_DIR/static-extract-ts"
-    chmod +x "$BIN_DIR/static-extract-ts"
+    cp "$source_bin" "$BIN_DIR/extract-js"
+    chmod +x "$BIN_DIR/extract-js"
   fi
-  echo "Installed command: $BIN_DIR/static-extract-ts"
+  echo "Installed command: $BIN_DIR/extract-js"
 }
 
 install_skill_dir() {
@@ -217,8 +217,8 @@ cat <<EOF
 Done.
 
 Try:
-  static-extract-java --help
-  static-extract-ts --help
+  extract-java --help
+  extract-js --help
 
 If commands are not found, add this to your shell profile:
   export PATH="$BIN_DIR:\$PATH"

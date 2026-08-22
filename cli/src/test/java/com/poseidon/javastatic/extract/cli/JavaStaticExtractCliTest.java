@@ -130,7 +130,7 @@ when annotation @Missing on method
         CliOutput output = execute();
 
         assertEquals(0, output.exitCode());
-        assertTrue(output.stdout().contains("Usage: static-extract-java"));
+        assertTrue(output.stdout().contains("Usage: extract-java"));
     }
 
     private CliOutput execute(String... args) throws Exception {

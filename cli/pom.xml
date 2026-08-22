@@ -41,7 +41,7 @@
           <programs>
             <program>
               <mainClass>com.poseidon.javastatic.extract.cli.JavaStaticExtractCli</mainClass>
-              <id>static-extract-java</id>
+              <id>extract-java</id>
             </program>
           </programs>
         </configuration>
