@@ -91,6 +91,34 @@ class JdtSupportAndBuildEvaluatorTest {
         fields.put("upper", new BuildExpression("method", null, null, List.of(action(BuildActionKind.UPPER, null, null, null, null, null))));
         fields.put("lower", new BuildExpression("constant", null, null, List.of(action(BuildActionKind.LOWER, null, null, null, null, null))));
         fields.put("concat", new BuildExpression(null, null, List.of("prefix", "/", "suffix"), List.of()));
+        fields.put(
+                "slashPath",
+                new BuildExpression(
+                        "slashPath",
+                        null,
+                        null,
+                        List.of(action(BuildActionKind.NORMALIZE, null, null, null, NormalizeKind.SLASH, null))));
+        fields.put(
+                "extractedPath",
+                new BuildExpression(
+                        "rawHttpPath",
+                        null,
+                        null,
+                        List.of(action(BuildActionKind.NORMALIZE, null, null, null, NormalizeKind.EXTRACT_PATH, null))));
+        fields.put(
+                "pathVariable",
+                new BuildExpression(
+                        "pathVariable",
+                        null,
+                        null,
+                        List.of(action(BuildActionKind.NORMALIZE, null, null, null, NormalizeKind.PATH_VARIABLE, null))));
+        fields.put(
+                "httpPath",
+                new BuildExpression(
+                        "rawHttpPath",
+                        null,
+                        null,
+                        List.of(action(BuildActionKind.NORMALIZE, null, null, null, NormalizeKind.HTTP_PATH, null))));
 
         List<Map<String, String>> rows = new JdtBuildEvaluator()
                 .evaluate(
@@ -102,7 +130,10 @@ class JdtSupportAndBuildEvaluatorTest {
                                 "method", List.of("get"),
                                 "constant", List.of("POST"),
                                 "prefix", List.of("/api"),
-                                "suffix", List.of("users")));
+                                "suffix", List.of("users"),
+                                "slashPath", List.of("//api///users/{name}"),
+                                "rawHttpPath", List.of("https://example.com//api/users/{name}/?page=1#top"),
+                                "pathVariable", List.of("/users/{name}/:id/<slug>/[item]")));
 
         Map<String, String> row = rows.get(0);
         assertEquals("/new/users/{param}/", row.get("path"));
@@ -113,6 +144,11 @@ class JdtSupportAndBuildEvaluatorTest {
         assertEquals("GET", row.get("upper"));
         assertEquals("post", row.get("lower"));
         assertEquals("/api/users", row.get("concat"));
+        assertEquals("/api/users/{name}", row.get("slashPath"));
+        assertEquals("/api/users/{name}/", row.get("extractedPath"));
+        assertEquals("/users/{param}/{param}/{param}/{param}", row.get("pathVariable"));
+        assertEquals("/api/users/{param}", row.get("httpPath"));
+
         assertEquals(List.of("a", "b"), ValueSupport.dedupe(List.of("a", "a", "b")));
         // empty map block → unchanged
         assertEquals(List.of("x"), ValueSupport.applyMapping(List.of("x"), Map.of()));
@@ -126,6 +162,30 @@ class JdtSupportAndBuildEvaluatorTest {
                 ValueSupport.applyMapping(
                         List.of("addTenant", "queryByExternalTenantId"),
                         Map.of("addTenant", "t_tenant")));
+    }
+
+    @Test
+    void normalizesDjangoRegexPathsWithoutTreatingRegexOperatorsAsQuery() {
+        BuildExpression expression =
+                new BuildExpression(
+                        "path",
+                        null,
+                        null,
+                        List.of(action(BuildActionKind.NORMALIZE, null, null, null, NormalizeKind.HTTP_PATH, null)));
+        List<Map<String, String>> rows =
+                new JdtBuildEvaluator()
+                        .evaluate(
+                                new BuildSpec(Map.of("normalized", expression)),
+                                Map.of(
+                                        "path",
+                                        List.of(
+                                                "^thumbnail/(?P<path>[.0-9A-Za-z_/-]+)/(?P<size>\\d+)/$",
+                                                "^api/(?P<id>\\d+)(?:/(?P<slug>[-\\w]+))?/$",
+                                                "/users/:userId?view=full#ignored")));
+
+        assertEquals(
+                List.of("/thumbnail/{param}/{param}", "/api/{param}/{param}", "/users/{param}"),
+                rows.stream().map(row -> row.get("normalized")).toList());
     }
 
     @Test

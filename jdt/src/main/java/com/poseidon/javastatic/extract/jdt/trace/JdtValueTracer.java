@@ -182,7 +182,12 @@ public class JdtValueTracer {
                                 ? c
                                 : null;
                 JdtEvalContext context = new JdtEvalContext(cu, typeDeclaration, invocation);
-                Map<String, List<String>> values = letEvaluator.evaluate(rule.lets(), context);
+                // A chained helper rule owns its own embedded trace block. Reusing this tracer's
+                // let evaluator silently drops that block and leaves method-call text unresolved.
+                JdtTraceOptions chainedOptions = options.withEmbedded(rule.embeddedTrace());
+                JdtLetEvaluator chainedLetEvaluator = new JdtLetEvaluator(
+                        new JdtSourceEvaluator(new JdtValueTracer(chainedOptions)));
+                Map<String, List<String>> values = chainedLetEvaluator.evaluate(rule.lets(), context);
                 List<Map<String, String>> rows = buildEvaluator.evaluate(rule.build(), values);
                 List<String> picked = pickContinuationValue(rows, values);
                 if (!picked.isEmpty()) {

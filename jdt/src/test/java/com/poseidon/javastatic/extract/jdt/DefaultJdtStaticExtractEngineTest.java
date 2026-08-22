@@ -39,8 +39,8 @@ class DefaultJdtStaticExtractEngineTest {
                   other: "manual-binding"
                 }
                 dict {
-                  com.example.Handler.run() = /configured/run
-                  com.example.Handler.run().1 = /configured/run-alias
+                  com.example.Handler.run() = /configured/run/{requestId}
+                  com.example.Handler.run().1 = /configured/run-alias/{aliasId}
                   com.example.Handler.run().2 = /configured/run-v2
                 }
                 """);
@@ -59,7 +59,7 @@ class DefaultJdtStaticExtractEngineTest {
 
         assertEquals(3, results.size());
         assertEquals(
-                List.of("/configured/run", "/configured/run-alias", "/configured/run-v2"),
+                List.of("/configured/run/{requestId}", "/configured/run-alias/{aliasId}", "/configured/run-v2"),
                 results.stream().map(result -> result.fields().get("path")).toList());
         for (StaticExtractResult result : results) {
             assertEquals("config", result.fields().get("parseLevel"));

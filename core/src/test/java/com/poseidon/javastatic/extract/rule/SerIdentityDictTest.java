@@ -20,13 +20,13 @@ class SerIdentityDictTest {
 
                 dict {
                   com.foo.Bar.send() = cooper_topic
-                  com.foo.Bar.other() = /v1/path
+                  com.foo.Bar.other() = /v1/space/{spaceId}/users/{id}
                 }
                 """;
         SerIdentityDict.Split split = SerIdentityDict.split(src);
         assertTrue(split.hasIdentity());
         assertEquals("cooper_topic", split.identity().get("com.foo.Bar.send()"));
-        assertEquals("/v1/path", split.identity().get("com.foo.Bar.other()"));
+        assertEquals("/v1/space/{spaceId}/users/{id}", split.identity().get("com.foo.Bar.other()"));
         assertFalse(split.serBody().contains("dict"));
         assertTrue(split.serBody().contains("rule \"x\""));
     }

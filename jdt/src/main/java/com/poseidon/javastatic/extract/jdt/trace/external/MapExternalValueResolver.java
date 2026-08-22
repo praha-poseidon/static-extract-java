@@ -20,7 +20,9 @@ import java.util.Map;
  * }
  * </pre>
  *
- * <p>No endpointPathOverrides wrapper, no value arrays, no project prefix, no config.
+ * <p>The flat identity JSON format is only used by {@link #loadJson(String)}. The engine wire
+ * constructor also carries ordinary trace namespaces such as {@code config}; those values must
+ * remain available to SER {@code trace { }} rules.
  */
 public class MapExternalValueResolver implements ExternalValueResolver, IdentityDictResolver {
 
@@ -28,11 +30,13 @@ public class MapExternalValueResolver implements ExternalValueResolver, Identity
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final Map<String, Map<String, List<String>>> values;
     private final Map<String, String> identity;
 
-    /** Engine wire: only {@code identity} namespace is honored. */
+    /** Engine wire: preserve all namespaces used by trace rules and expose identity separately. */
     public MapExternalValueResolver(Map<String, Map<String, List<String>>> multiNamespace) {
-        this.identity = fromWire(multiNamespace);
+        this.values = copyWire(multiNamespace);
+        this.identity = fromWire(values);
     }
 
     private MapExternalValueResolver(Map<String, String> identity, boolean ignored) {
@@ -40,6 +44,7 @@ public class MapExternalValueResolver implements ExternalValueResolver, Identity
                 identity == null || identity.isEmpty()
                         ? Map.of()
                         : Collections.unmodifiableMap(new LinkedHashMap<>(identity));
+        this.values = toWire(this.identity);
     }
 
     public static MapExternalValueResolver ofIdentity(Map<String, String> identity) {
@@ -133,11 +138,13 @@ public class MapExternalValueResolver implements ExternalValueResolver, Identity
         if (key == null || key.isBlank()) {
             return List.of();
         }
-        if (namespace != null && !namespace.isBlank() && !IDENTITY_NS.equals(namespace)) {
+        String resolvedNamespace = namespace == null || namespace.isBlank() ? IDENTITY_NS : namespace.trim();
+        Map<String, List<String>> table = values.get(resolvedNamespace);
+        if (table == null) {
             return List.of();
         }
-        String v = identity.get(key.trim());
-        return v == null || v.isBlank() ? List.of() : List.of(v);
+        List<String> resolved = table.get(key.trim());
+        return resolved == null ? List.of() : resolved;
     }
 
     @Override
@@ -151,5 +158,37 @@ public class MapExternalValueResolver implements ExternalValueResolver, Identity
 
     public Map<String, String> identityMap() {
         return identity;
+    }
+
+    private static Map<String, Map<String, List<String>>> copyWire(
+            Map<String, Map<String, List<String>>> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Map<String, List<String>>> copied = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, List<String>>> namespace : source.entrySet()) {
+            if (namespace.getKey() == null || namespace.getKey().isBlank()
+                    || namespace.getValue() == null || namespace.getValue().isEmpty()) {
+                continue;
+            }
+            Map<String, List<String>> table = new LinkedHashMap<>();
+            for (Map.Entry<String, List<String>> entry : namespace.getValue().entrySet()) {
+                if (entry.getKey() == null || entry.getKey().isBlank()
+                        || entry.getValue() == null || entry.getValue().isEmpty()) {
+                    continue;
+                }
+                List<String> nonBlank = entry.getValue().stream()
+                        .filter(value -> value != null && !value.isBlank())
+                        .map(String::trim)
+                        .toList();
+                if (!nonBlank.isEmpty()) {
+                    table.put(entry.getKey().trim(), nonBlank);
+                }
+            }
+            if (!table.isEmpty()) {
+                copied.put(namespace.getKey().trim(), Collections.unmodifiableMap(table));
+            }
+        }
+        return copied.isEmpty() ? Map.of() : Collections.unmodifiableMap(copied);
     }
 }

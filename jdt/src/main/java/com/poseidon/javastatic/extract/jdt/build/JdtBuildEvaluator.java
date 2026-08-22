@@ -109,6 +109,7 @@ public class JdtBuildEvaluator {
             case SLASH -> normalizeSlash(value);
             case PATH_VARIABLE -> normalizePathVariable(value);
             case EXTRACT_PATH -> extractPath(value);
+            case HTTP_PATH, ROUTE_PATH -> normalizeHttpPath(value);
             case PLACEHOLDER_LOOKUP -> placeholderLookup(value);
             case PLACEHOLDER_DEFAULT -> placeholderDefault(value);
             case KEBAB -> kebab(value);
@@ -147,19 +148,57 @@ public class JdtBuildEvaluator {
     }
 
     private String normalizePathVariable(String value) {
-        return normalizeSlash(value)
+        return value
+                .replaceAll("\\(\\?P<[^>]+>[^)]*\\)", "{param}")
+                .replaceAll("\\(\\?:/\\{param}/?\\??\\)\\?", "/{param}")
+                .replaceAll("\\(\\?:\\{param}/?\\??\\)\\?", "{param}")
                 .replaceAll(":([A-Za-z_$][\\w$]*)", "{param}")
                 .replaceAll("\\$\\{[^}]+}", "{param}")
-                .replaceAll("\\{[^}/]+}", "{param}");
+                .replaceAll("\\{[^}/]+}", "{param}")
+                .replaceAll("<(?:(?:[^:>]+):)?[^>]+>", "{param}")
+                .replaceAll("\\[\\[\\.{3}[^]]+]]", "{param}")
+                .replaceAll("\\[\\.{3}[^]]+]", "{param}")
+                .replaceAll("\\[[^]]+]", "{param}");
     }
 
     private String extractPath(String value) {
         String path = value.replaceFirst("(?i)^https?://[^/]+", "");
-        int query = path.indexOf('?');
+        int suffix = path.length();
+        int query = queryDelimiter(path);
+        int fragment = path.indexOf('#');
         if (query >= 0) {
-            path = path.substring(0, query);
+            suffix = Math.min(suffix, query);
         }
+        if (fragment >= 0) {
+            suffix = Math.min(suffix, fragment);
+        }
+        path = path.substring(0, suffix);
         return normalizeSlash(path);
+    }
+
+    private int queryDelimiter(String value) {
+        for (int index = 0; index < value.length(); index++) {
+            if (value.charAt(index) != '?') {
+                continue;
+            }
+            boolean previousIsGroupEnd = index > 0 && value.charAt(index - 1) == ')';
+            boolean nextIsRegexOperator = index + 1 < value.length()
+                    && "P:=!<".indexOf(value.charAt(index + 1)) >= 0;
+            if (!previousIsGroupEnd && !nextIsRegexOperator) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private String normalizeHttpPath(String value) {
+        String candidate = value.trim().replaceFirst("^\\^", "").replaceFirst("\\$$", "").replace("\\.", ".");
+        String path = normalizePathVariable(extractPath(candidate))
+                .replaceFirst("^(?:\\{param})+(?=/[^{}]+)", "");
+        if (!path.isEmpty() && !path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return path.length() > 1 ? path.replaceFirst("/$", "") : path;
     }
 
     private String placeholderLookup(String value) {

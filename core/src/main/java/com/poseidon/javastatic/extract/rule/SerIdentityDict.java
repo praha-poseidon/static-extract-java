@@ -23,8 +23,7 @@ import java.util.regex.Pattern;
  */
 public final class SerIdentityDict {
 
-    private static final Pattern DICT_BLOCK = Pattern.compile(
-            "(?is)\\bdict\\s*\\{([^}]*)\\}\\s*$");
+    private static final Pattern DICT_START = Pattern.compile("(?im)^\\s*dict\\s*\\{");
 
     private SerIdentityDict() {}
 
@@ -50,13 +49,55 @@ public final class SerIdentityDict {
         if (source == null || source.isBlank()) {
             return new Split("", Map.of());
         }
-        Matcher m = DICT_BLOCK.matcher(source);
-        if (!m.find()) {
+        Matcher matcher = DICT_START.matcher(source);
+        int blockStart = -1;
+        int openBrace = -1;
+        int closeBrace = -1;
+        while (matcher.find()) {
+            int candidateOpen = source.indexOf('{', matcher.start());
+            int candidateClose = matchingBrace(source, candidateOpen);
+            if (candidateClose >= 0 && source.substring(candidateClose + 1).isBlank()) {
+                blockStart = matcher.start();
+                openBrace = candidateOpen;
+                closeBrace = candidateClose;
+            }
+        }
+        if (blockStart < 0) {
             return new Split(source, Map.of());
         }
-        String body = source.substring(0, m.start()).stripTrailing();
-        Map<String, String> identity = parseBody(m.group(1));
+        String body = source.substring(0, blockStart).stripTrailing();
+        Map<String, String> identity = parseBody(source.substring(openBrace + 1, closeBrace));
         return new Split(body, identity);
+    }
+
+    private static int matchingBrace(String source, int openBrace) {
+        if (openBrace < 0) {
+            return -1;
+        }
+        int depth = 0;
+        char quote = 0;
+        boolean escaped = false;
+        for (int i = openBrace; i < source.length(); i++) {
+            char current = source.charAt(i);
+            if (quote != 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '{') {
+                depth++;
+            } else if (current == '}' && --depth == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     static Map<String, String> parseBody(String body) {

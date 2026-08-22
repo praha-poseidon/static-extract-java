@@ -1,0 +1,1 @@
+{"rule":"WebClient post uri chain","factType":"http_outbound","classifiers":{},"fields":{"method":"post","path":"/api/users"},"projectFilePath":"input/Client.java","absoluteFilePath":"${EXAMPLE_DIR}/input/Client.java","startLine":11,"endLine":11,"enclosingSymbol":"demo.Client.call"}

@@ -1,5 +1,6 @@
 package com.poseidon.javastatic.extract.language;
 
+import com.poseidon.javastatic.extract.build.NormalizeKind;
 import com.poseidon.javastatic.extract.rule.StaticExtractRule;
 import com.poseidon.javastatic.extract.source.JavaElementKind;
 import com.poseidon.javastatic.extract.source.TakeKind;
@@ -15,6 +16,25 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AntlrSerRuleParserTest {
+
+    @Test
+    void parsesHttpPathNormalizationInStaticBuild() {
+        StaticExtractRule rule = new AntlrSerRuleParser().parse(
+                """
+                rule "HTTP path"
+                endpoint HTTP inbound
+                find method
+                let raw =
+                  from literal "https://example.com/users/{name}" take value
+                build {
+                  path: raw | normalize httpPath
+                }
+                """);
+
+        assertEquals(
+                NormalizeKind.HTTP_PATH,
+                rule.build().fields().get("path").actions().get(0).normalize());
+    }
 
     @Test
     void parsesSpringMvcInboundRuleShape() {

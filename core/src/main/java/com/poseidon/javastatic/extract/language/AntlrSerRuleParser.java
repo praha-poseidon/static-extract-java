@@ -717,6 +717,8 @@ public class AntlrSerRuleParser implements SerRuleParser {
                 case "slash" -> NormalizeKind.SLASH;
                 case "pathvariable", "path_variable" -> NormalizeKind.PATH_VARIABLE;
                 case "extractpath", "extract_path" -> NormalizeKind.EXTRACT_PATH;
+                case "httppath", "http_path" -> NormalizeKind.HTTP_PATH;
+                case "routepath", "route_path" -> NormalizeKind.ROUTE_PATH;
                 case "placeholderlookup", "placeholder_lookup" -> NormalizeKind.PLACEHOLDER_LOOKUP;
                 case "placeholderdefault", "placeholder_default" -> NormalizeKind.PLACEHOLDER_DEFAULT;
                 case "kebab", "kebabcase", "kebab_case" -> NormalizeKind.KEBAB;

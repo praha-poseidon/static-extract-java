@@ -140,7 +140,7 @@ public final class EndpointIdentityOverride {
             return fields;
         }
 
-        String value = normalizeIdentity(rule, identityField, override);
+        String value = normalizeIdentity(override);
         Map<String, String> out = new LinkedHashMap<>(fields);
         out.put(identityField, value);
         out.put("parseLevel", "config");
@@ -169,19 +169,8 @@ public final class EndpointIdentityOverride {
         return null;
     }
 
-    private static String normalizeIdentity(StaticExtractRule rule, String field, String raw) {
-        String p = raw.trim();
-        if (p.isEmpty()) {
-            return p;
-        }
-        EndpointSpec ep = rule != null ? rule.endpoint() : null;
-        String type = ep != null && ep.type() != null ? ep.type().trim().toUpperCase(Locale.ROOT) : "";
-        if ("HTTP".equals(type) || "path".equals(field)) {
-            if (!p.startsWith("/") && !p.startsWith("http://") && !p.startsWith("https://") && !p.startsWith("lb:")) {
-                return "/" + p;
-            }
-        }
-        return p;
+    private static String normalizeIdentity(String raw) {
+        return raw.trim();
     }
 
     public static String enclosingMethodName(ASTNode anchor) {
